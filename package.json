@@ -1,14 +1,9 @@
 {
-  "displayName": "My Electron App",
-  "name": "my-electron-app",
-  "description": "Your awesome app description",
+  "name": "offseason-shelter-for-science",
+  "description": "Desktop application for decentralized environmental data sharing using P2P torrent protocol",
   "version": "0.0.0",
   "main": "./node_modules/.dev/main/index.js",
   "resources": "src/resources",
-  "author": {
-    "name": "Dalton Menezes",
-    "email": "daltonmenezes@outlook.com"
-  },
   "license": "MIT",
   "packageManager": "pnpm@10.0.0",
   "pnpm": {
