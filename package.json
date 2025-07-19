@@ -1,7 +1,12 @@
 {
-  "name": "offseason-shelter-for-science",
+  "displayName": "Shelter For Science App",
+  "name": "shelter-for-science-app",
   "description": "Desktop application for decentralized environmental data sharing using P2P torrent protocol",
   "version": "0.0.0",
+  "author": {
+    "name": "Data For Good",
+    "email": ""
+  },
   "main": "./node_modules/.dev/main/index.js",
   "resources": "src/resources",
   "license": "MIT",
