@@ -4,6 +4,8 @@ import type { Readable } from "stream";
 import httpService from "./http.service";
 import { getDownloadPath } from "./store.service";
 import type { DownloadProgress } from "../types";
+import { torrentService } from "./torrent.service";
+import { dispatcherService } from "./dispatcher.service";
 
 export class DownloadService {
   private activeDownloads = new Map<string, boolean>();
@@ -19,7 +21,15 @@ export class DownloadService {
 
     try {
       this.activeDownloads.set(datasetId, true);
-      return await this.performDownload(datasetId, onProgress);
+      const filePath = await this.performDownload(datasetId, onProgress);
+
+      // ✅ Créer le magnet link et commencer le seeding
+      // const magnetLink = await torrentService.createMagnetAndSeed(filePath, datasetId);
+
+      // // ✅ Notifier le dispatcher avec le vrai magnet link
+      // await dispatcherService.notifyDownloadComplete(datasetId, magnetLink);
+
+      return filePath;
     } finally {
       this.activeDownloads.delete(datasetId);
     }
@@ -53,11 +63,11 @@ export class DownloadService {
   private ensureDownloadDirectory(): string {
     const datasetsDir = getDownloadPath() || "datasets";
     console.log(`Datasets directory: ${datasetsDir}`);
-    
+
     if (!fs.existsSync(datasetsDir)) {
       fs.mkdirSync(datasetsDir, { recursive: true });
     }
-    
+
     return datasetsDir;
   }
 
