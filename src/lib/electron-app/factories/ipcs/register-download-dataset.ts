@@ -1,14 +1,17 @@
 import { ipcMain } from "electron";
-import { downloadDataset } from "lib/electron-app/services/download.service";
+import { downloadService } from "lib/electron-app/services/download.service";
 
 export function registerDownloadDataset() {
   ipcMain.handle("download-dataset", async (event, datasetId: string) => {
     try {
-      const filePath = await downloadDataset(
+      const filePath = await downloadService.downloadDataset(
         datasetId,
-        (progress, speed, eta) => {
-          // Envoie la progression au renderer
-          event.sender.send("download-progress", progress, speed, eta);
+        (progress) => {
+          event.sender.send("download-progress", 
+            progress.progress,
+            progress.speed,
+            progress.eta,
+          );
         }
       );
 
@@ -19,3 +22,4 @@ export function registerDownloadDataset() {
     }
   });
 }
+
