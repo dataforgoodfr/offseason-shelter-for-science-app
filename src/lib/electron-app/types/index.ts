@@ -10,10 +10,11 @@ export interface Dataset {
 }
 
 export interface DownloadProgress {
-  downloadedBytes: number;
-  totalBytes: number;
-  percentage: number;
-  speed?: number; // bytes per second
+  progress: number;
+  speed: string;
+  eta: string;
+  downloadedSize: number;
+  totalSize: number;
 }
 
 export interface DownloadResult {

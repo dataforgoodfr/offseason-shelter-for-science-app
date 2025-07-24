@@ -7,11 +7,10 @@ export function registerDownloadDataset() {
       const filePath = await downloadService.downloadDataset(
         datasetId,
         (progress) => {
-          event.sender.send("download-progress", 
-            progress.progress,
-            progress.speed,
-            progress.eta,
-          );
+          event.sender.send("download-progress", {
+            datasetId,
+            ...progress
+          });
         }
       );
 

@@ -6,6 +6,7 @@ import {
   CheckIcon,
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
+import type { DownloadProgress } from "lib/electron-app/types";
 
 interface DownloadState {
   isDownloading: boolean;
@@ -28,7 +29,8 @@ export const DatasetDownloader: React.FC = () => {
 
   useEffect(() => {
     // Écouter les mises à jour de progression
-    window.App.onDownloadProgress((progress, speed, eta) => {
+    window.App.onDownloadProgress((progressData: DownloadProgress) => {
+      const { progress, speed, eta } = progressData;
       setDownloadState((prev) => ({
         ...prev,
         progress,

@@ -3,14 +3,7 @@ import * as path from "path";
 import type { Readable } from "stream";
 import httpService from "./http.service";
 import { getDownloadPath } from "./store.service";
-
-interface DownloadProgress {
-  progress: number;
-  speed: string;
-  eta: string;
-  downloadedSize: number;
-  totalSize: number;
-}
+import type { DownloadProgress } from "../types";
 
 export class DownloadService {
   private activeDownloads = new Map<string, boolean>();

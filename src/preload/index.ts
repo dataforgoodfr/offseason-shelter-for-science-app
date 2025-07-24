@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { DownloadProgress } from 'lib/electron-app/types';
 
 declare global {
   interface Window {
@@ -15,8 +16,10 @@ const API = {
   setDownloadPath: (path: string) => ipcRenderer.invoke('set-download-path', path),
   getDownloadPath: () => ipcRenderer.invoke('get-download-path'),
   downloadDataset: (datasetId: string) => ipcRenderer.invoke('download-dataset', datasetId),
-  onDownloadProgress: (callback: (progress: number, speed: string, eta: string) => void) => {
-    ipcRenderer.on('download-progress', (_, progress, speed, eta) => callback(progress, speed, eta))
+  onDownloadProgress: (callback: (progressData: DownloadProgress) => void) => {
+    ipcRenderer.on('download-progress', (_, progressData) => {
+      callback(progressData);
+    });
   },
   removeDownloadProgressListener: () => {
     ipcRenderer.removeAllListeners('download-progress')
