@@ -1,34 +1,32 @@
-import { useEffect, useState } from "react";
-import {
-  EllipsisHorizontalIcon,
-  FolderIcon,
-} from "@heroicons/react/24/outline";
-import { DatasetDownloader } from "renderer/components/dataset-downloader";
+import { useEffect, useState } from 'react'
+import { EllipsisHorizontalIcon, FolderIcon } from '@heroicons/react/24/outline'
+import { DatasetDownloader } from 'renderer/components/dataset-downloader'
+import { TorrentDownloader } from 'renderer/components/torrent-downloader'
 
 // The "App" comes from the context bridge in preload/index.ts
-const { App } = window;
+const { App } = window
 
 export function MainScreen() {
   useEffect(() => {
     // check the console on dev tools
-    App.sayHelloFromBridge();
-  }, []);
+    App.sayHelloFromBridge()
+  }, [])
 
   useEffect(() => {
-    window.App.getDownloadPath().then((path) => {
-      if (path) setSelectedPath(path);
-    });
-  }, []);
+    window.App.getDownloadPath().then(path => {
+      if (path) setSelectedPath(path)
+    })
+  }, [])
 
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null)
 
   const handleSelectFolder = async () => {
-    const folder = await App.openFolderDialog();
+    const folder = await App.openFolderDialog()
     if (folder) {
-      setSelectedPath(folder);
-      await window.App.setDownloadPath(folder); // <-- Sauvegarde dans SQLite via IPC !
+      setSelectedPath(folder)
+      await window.App.setDownloadPath(folder) // <-- Sauvegarde dans SQLite via IPC !
     }
-  };
+  }
 
   return (
     <div className="max-w-md mx-auto bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 min-h-screen text-white p-4">
@@ -57,7 +55,7 @@ export function MainScreen() {
         >
           <FolderIcon className="w-5 h-5" />
           <span className="text-sm truncate">
-            {selectedPath || "Cliquez pour choisir un dossier"}
+            {selectedPath || 'Cliquez pour choisir un dossier'}
           </span>
         </button>
       </div>
@@ -66,6 +64,11 @@ export function MainScreen() {
       <div className="mb-6">
         <DatasetDownloader />
       </div>
+
+      {/* Torrent Downloader */}
+      <div className="mb-6">
+        <TorrentDownloader />
+      </div>
     </div>
-  );
+  )
 }

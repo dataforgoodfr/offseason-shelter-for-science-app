@@ -6,6 +6,7 @@ import { MainWindow } from "./windows/main";
 import { registerFolderPicker } from "lib/electron-app/factories/ipcs/register-folter-picker";
 import { registerDownloadDataset } from "lib/electron-app/factories/ipcs/register-download-dataset";
 import { registerManageDownloadPath } from "lib/electron-app/factories/ipcs/register-manage-download-path";
+import { registerTorrentDownload } from "lib/electron-app/factories/ipcs/register-torrent-download";
 
 makeAppWithSingleInstanceLock(async () => {
   await app.whenReady();
@@ -14,6 +15,7 @@ makeAppWithSingleInstanceLock(async () => {
   registerFolderPicker();
   registerManageDownloadPath();
   registerDownloadDataset();
+  registerTorrentDownload();
 
   await makeAppSetup(MainWindow);
 });

@@ -79,6 +79,74 @@ export class WebTorrentWrapper {
         });
     }
 
+    async downloadTorrent(
+        magnetLink: string,
+        downloadPath: string,
+        onProgress?: (progress: any) => void
+    ): Promise<any> {
+        console.log(`[WebTorrentWrapper] Starting torrent download from magnet: ${magnetLink}`);
+
+        // S'assurer que le client est initialisé
+        if (!this.client) {
+            await this.initializeClient();
+        }
+
+        // Promisifier l'ajout du torrent
+        const torrent = await this.addTorrent(magnetLink, downloadPath);
+
+        console.log(`[WebTorrentWrapper] Torrent added successfully:`);
+        console.log(`  - InfoHash: ${torrent.infoHash}`);
+        console.log(`  - Name: ${torrent.name}`);
+
+        // Configurer le callback de progression
+        if (onProgress) {
+            torrent.on('download', () => {
+                const progress = {
+                    progress: torrent.progress,
+                    downloadSpeed: torrent.downloadSpeed,
+                    uploadSpeed: torrent.uploadSpeed,
+                    numPeers: torrent.numPeers,
+                    timeRemaining: this.calculateTimeRemaining(torrent),
+                    downloaded: torrent.downloaded,
+                    total: torrent.length
+                };
+                onProgress(progress);
+            });
+        }
+
+        // Attendre que le téléchargement soit terminé
+        await this.waitForDownloadComplete(torrent);
+
+        return torrent;
+    }
+
+    private async addTorrent(magnetLink: string, downloadPath: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.client.add(magnetLink, { path: downloadPath }, (torrent: any) => {
+                if (torrent) {
+                    resolve(torrent);
+                } else {
+                    reject(new Error('Failed to add torrent'));
+                }
+            });
+        });
+    }
+
+    private calculateTimeRemaining(torrent: any): number {
+        if (torrent.downloadSpeed === 0) return 0;
+        const remaining = torrent.length - torrent.downloaded;
+        return remaining / torrent.downloadSpeed;
+    }
+
+    private async waitForDownloadComplete(torrent: any): Promise<void> {
+        return new Promise((resolve) => {
+            torrent.on('done', () => {
+                console.log(`[WebTorrentWrapper] Torrent download completed: ${torrent.name}`);
+                resolve();
+            });
+        });
+    }
+
     private setupTorrentListeners(torrent: any, datasetId: string): void {
         torrent.on('upload', () => {
             console.log(`[WebTorrentWrapper] Uploading dataset ${datasetId} - Speed: ${torrent.uploadSpeed} bytes/s`);

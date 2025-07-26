@@ -26,4 +26,22 @@ const API = {
   }
 }
 
+// API pour les torrents
+const torrentAPI = {
+  downloadTorrent: (magnetLink: string, datasetId: string) =>
+    ipcRenderer.invoke('torrent:download', magnetLink, datasetId),
+  onTorrentProgress: (callback: (datasetId: string, progressData: any) => void) => {
+    ipcRenderer.on('torrent:download-progress', (_, datasetId, progressData) => {
+      callback(datasetId, progressData);
+    });
+  },
+  isDownloading: (datasetId: string) =>
+    ipcRenderer.invoke('torrent:is-downloading', datasetId),
+  cancelDownload: (datasetId: string) =>
+    ipcRenderer.invoke('torrent:cancel-download', datasetId),
+  getActiveDownloads: () =>
+    ipcRenderer.invoke('torrent:get-active-downloads')
+}
+
 contextBridge.exposeInMainWorld('App', API)
+contextBridge.exposeInMainWorld('electronAPI', torrentAPI)
