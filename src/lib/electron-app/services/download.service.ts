@@ -24,10 +24,10 @@ export class DownloadService {
       const filePath = await this.performDownload(datasetId, onProgress);
 
       // ✅ Créer le magnet link et commencer le seeding
-      // const magnetLink = await torrentService.createMagnetAndSeed(filePath, datasetId);
+      const magnetLink = await torrentService.createMagnetAndSeed(filePath, datasetId);
 
-      // // ✅ Notifier le dispatcher avec le vrai magnet link
-      // await dispatcherService.notifyDownloadComplete(datasetId, magnetLink);
+      // ✅ Notifier le dispatcher avec le vrai magnet link
+      await dispatcherService.notifyDownloadComplete(datasetId, magnetLink);
 
       return filePath;
     } finally {
