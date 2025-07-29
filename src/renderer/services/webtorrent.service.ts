@@ -226,78 +226,38 @@ export class WebTorrentService {
   private addTorrentEvents(torrent: WebTorrent.Torrent): void {
     const torrentKey = (torrent as any).key;
 
-    torrent.on('warning', (err: string | Error) => {
-      const message = typeof err === 'string' ? err : err.message;
-      // ipcRenderer.send('wt-warning', torrentKey, message); // This line is removed
-      console.warn('WebTorrent warning:', message);
-    });
-
+    // Événements essentiels seulement
     torrent.on('error', (err: string | Error) => {
       const message = typeof err === 'string' ? err : err.message;
-      // ipcRenderer.send('wt-error', torrentKey, message); // This line is removed
       console.error('WebTorrent error:', message);
-      
-      // Émettre un événement d'erreur pour l'interface
       window.dispatchEvent(new CustomEvent('torrent-error', { 
         detail: { torrentKey, error: message } 
       }));
     });
 
-    torrent.on('infoHash', () => {
-      // ipcRenderer.send('wt-parsed', torrentKey, torrent.infoHash, torrent.magnetURI); // This line is removed
-      console.log('WebTorrent infoHash:', torrentKey, torrent.infoHash, torrent.magnetURI);
-    });
-
-    torrent.on('metadata', () => {
-      const info = this.getTorrentInfo(torrent);
-      // ipcRenderer.send('wt-metadata', torrentKey, info); // This line is removed
-      console.log('WebTorrent metadata:', torrentKey, info);
-      
-      // Émettre un événement de métadonnées pour l'interface
-      window.dispatchEvent(new CustomEvent('torrent-metadata', { 
-        detail: { torrentKey, info } 
-      }));
-      
-      this.updateTorrentProgress();
-    });
-
     torrent.on('ready', () => {
       const info = this.getTorrentInfo(torrent);
-      // ipcRenderer.send('wt-ready', torrentKey, info); // This line is removed
-      console.log('WebTorrent ready:', torrentKey, info);
-      // ipcRenderer.send(`wt-ready-${torrent.infoHash}`, torrentKey, info); // This line is removed
+      console.log('WebTorrent ready:', torrentKey, info.name);
       
-      // Émettre un événement de prêt pour l'interface
       window.dispatchEvent(new CustomEvent('torrent-ready', { 
         detail: { torrentKey, info } 
       }));
+      
+      // Commencer le streaming des fichiers
+      this.prepareFilesForDownload(torrent, torrentKey);
       
       this.updateTorrentProgress();
     });
 
     torrent.on('done', () => {
       const info = this.getTorrentInfo(torrent);
-      // ipcRenderer.send('wt-done', torrentKey, info); // This line is removed
-      console.log('WebTorrent done:', torrentKey, info);
+      console.log('WebTorrent done:', torrentKey, info.name);
       
-      // Émettre un événement de fin pour l'interface
       window.dispatchEvent(new CustomEvent('torrent-done', { 
         detail: { torrentKey, info } 
       }));
       
-      // Préparer les fichiers pour téléchargement
-      this.prepareFilesForDownload(torrent, torrentKey);
-      
       this.updateTorrentProgress();
-
-      // Ne pas utiliser getFileModtimes dans le navigateur
-      // car cela utilise des APIs Node.js (fs.stat) non disponibles
-      // Get file modification times
-      // (torrent as any).getFileModtimes((err: Error | null, fileModtimes: any) => {
-      //   if (err) return this.onError(err);
-      //   // ipcRenderer.send('wt-file-modtimes', torrentKey, fileModtimes); // This line is removed
-      //   console.log('WebTorrent file modtimes:', torrentKey, fileModtimes);
-      // });
     });
   }
 
@@ -543,106 +503,79 @@ export class WebTorrentService {
     this.client.destroy();
   }
 
-  // Prépare les fichiers du torrent pour téléchargement automatique avec streaming
-  private prepareFilesForDownload(torrent: WebTorrent.Torrent, torrentKey: string): void {
-    console.log(`Préparation du streaming automatique pour ${torrent.files.length} fichier(s)`);
-    
-    // Créer un stream pour chaque fichier
-    torrent.files.forEach((file: any, index: number) => {
-      this.createFileStream(file, torrentKey, index);
-    });
-  }
-
-  // Crée un stream pour un fichier et configure les listeners
+  // Méthode simplifiée pour le streaming de fichier
   private createFileStream(file: any, torrentKey: string, fileIndex: number): void {
-    console.log(`Création du stream pour: ${file.name}`);
+    console.log(`Streaming: ${file.name}`);
     
-    // Créer le stream via IPC
     window.App.createTorrentStream(file.name).then((result: any) => {
       if (!result.success) {
-        console.error(`Erreur création stream pour ${file.name}:`, result.error);
-        window.dispatchEvent(new CustomEvent('torrent-file-save-error', { 
-          detail: { torrentKey, fileName: file.name, error: result.error } 
-        }));
+        this.emitFileError(torrentKey, file.name, result.error);
         return;
       }
 
       const { streamId, filePath } = result;
-      console.log(`Stream créé pour ${file.name}: ${streamId}`);
+      this.streamFileToSafer(file, torrentKey, streamId, filePath);
+    }).catch(error => {
+      this.emitFileError(torrentKey, file.name, error.message);
+    });
+  }
 
-      // Notifier que le fichier commence à être sauvegardé
-      window.dispatchEvent(new CustomEvent('torrent-file-streaming', { 
-        detail: { torrentKey, fileName: file.name, filePath, streamId } 
-      }));
+  private streamFileToSafer(file: any, torrentKey: string, streamId: string, filePath: string): void {
+    // Notifier le début du streaming
+    window.dispatchEvent(new CustomEvent('torrent-file-streaming', { 
+      detail: { torrentKey, fileName: file.name, filePath, streamId } 
+    }));
 
-      // Variables pour suivre le progrès
-      let bytesWritten = 0;
-      const totalSize = file.length;
-
-      // Créer un stream pour lire le fichier par chunks
-      const stream = file.createReadStream();
+    let bytesWritten = 0;
+    const stream = file.createReadStream();
+    
+    stream.on('data', (chunk: Uint8Array) => {
+      const arrayBuffer = new ArrayBuffer(chunk.length);
+      const view = new Uint8Array(arrayBuffer);
+      view.set(chunk);
       
-      stream.on('data', (chunk: Uint8Array) => {
-        // Convertir le chunk en ArrayBuffer
-        const arrayBuffer = new ArrayBuffer(chunk.length);
-        const view = new Uint8Array(arrayBuffer);
-        view.set(chunk);
-        
-        // Écrire le chunk via IPC
-        window.App.writeTorrentChunk(streamId, arrayBuffer, bytesWritten).then((writeResult: any) => {
-          if (writeResult.success) {
-            bytesWritten += chunk.length;
-            
-            // Émettre le progrès de ce fichier
-            const progress = Math.round((bytesWritten / totalSize) * 100);
-            window.dispatchEvent(new CustomEvent('torrent-file-progress', { 
-              detail: { 
-                torrentKey, 
-                fileName: file.name, 
-                bytesWritten, 
-                totalSize, 
-                progress 
-              } 
-            }));
-          } else {
-            console.error(`Erreur écriture chunk pour ${file.name}:`, writeResult.error);
-            stream.destroy();
-            window.App.closeTorrentStream(streamId, file.name);
-          }
-        }).catch(error => {
-          console.error(`Erreur lors de l'écriture du chunk:`, error);
+      window.App.writeTorrentChunk(streamId, arrayBuffer, bytesWritten).then((result: any) => {
+        if (result.success) {
+          bytesWritten += chunk.length;
+          const progress = Math.round((bytesWritten / file.length) * 100);
+          
+          window.dispatchEvent(new CustomEvent('torrent-file-progress', { 
+            detail: { 
+              torrentKey, 
+              fileName: file.name, 
+              bytesWritten, 
+              totalSize: file.length, 
+              progress 
+            } 
+          }));
+        } else {
           stream.destroy();
           window.App.closeTorrentStream(streamId, file.name);
-        });
-      });
-
-      stream.on('end', () => {
-        console.log(`Stream terminé pour ${file.name}`);
-        // Fermer le stream
-        window.App.closeTorrentStream(streamId, file.name).then((closeResult: any) => {
-          if (closeResult.success) {
-            console.log(`Fichier sauvegardé avec succès: ${file.name}`);
-            window.dispatchEvent(new CustomEvent('torrent-file-saved', { 
-              detail: { torrentKey, fileName: file.name, filePath } 
-            }));
-          }
-        });
-      });
-
-      stream.on('error', (error: Error) => {
-        console.error(`Erreur stream pour ${file.name}:`, error);
+        }
+      }).catch(() => {
+        stream.destroy();
         window.App.closeTorrentStream(streamId, file.name);
-        window.dispatchEvent(new CustomEvent('torrent-file-save-error', { 
-          detail: { torrentKey, fileName: file.name, error: error.message } 
+      });
+    });
+
+    stream.on('end', () => {
+      window.App.closeTorrentStream(streamId, file.name).then(() => {
+        window.dispatchEvent(new CustomEvent('torrent-file-saved', { 
+          detail: { torrentKey, fileName: file.name, filePath } 
         }));
       });
-
-    }).catch(error => {
-      console.error(`Erreur lors de la création du stream pour ${file.name}:`, error);
-      window.dispatchEvent(new CustomEvent('torrent-file-save-error', { 
-        detail: { torrentKey, fileName: file.name, error: error.message } 
-      }));
     });
+
+    stream.on('error', (error: Error) => {
+      window.App.closeTorrentStream(streamId, file.name);
+      this.emitFileError(torrentKey, file.name, error.message);
+    });
+  }
+
+  private emitFileError(torrentKey: string, fileName: string, error: string): void {
+    window.dispatchEvent(new CustomEvent('torrent-file-save-error', { 
+      detail: { torrentKey, fileName, error } 
+    }));
   }
 
   // Supprimer l'ancienne méthode saveFileToDownloadPath
@@ -658,6 +591,15 @@ export class WebTorrentService {
   // public downloadAllFiles(torrent: WebTorrent.Torrent): void {
   //   // Cette méthode n'est plus nécessaire car les fichiers sont sauvegardés automatiquement
   // }
+
+  // Prépare les fichiers pour le streaming
+  private prepareFilesForDownload(torrent: WebTorrent.Torrent, torrentKey: string): void {
+    console.log(`Streaming ${torrent.files.length} fichier(s)`);
+    
+    torrent.files.forEach((file: any, index: number) => {
+      this.createFileStream(file, torrentKey, index);
+    });
+  }
 }
 
 // Initialize and make globally available
