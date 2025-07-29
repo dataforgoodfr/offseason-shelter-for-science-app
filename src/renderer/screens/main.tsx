@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { EllipsisHorizontalIcon, FolderIcon } from '@heroicons/react/24/outline'
 import { DatasetDownloader } from 'renderer/components/dataset-downloader'
 import { TorrentDownloader } from 'renderer/components/torrent-downloader'
+import { SeedingMonitor } from 'renderer/components/seeding-monitor'
 
 // The "App" comes from the context bridge in preload/index.ts
 const { App } = window
@@ -68,6 +69,11 @@ export function MainScreen() {
       {/* Torrent Downloader */}
       <div className="mb-6">
         <TorrentDownloader />
+      </div>
+
+      {/* Seeding Monitor */}
+      <div className="mb-6">
+        <SeedingMonitor />
       </div>
     </div>
   )

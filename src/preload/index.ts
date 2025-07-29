@@ -36,7 +36,10 @@ const API = {
   writeTorrentChunk: (streamId: string, chunkData: ArrayBuffer, offset: number) => 
     ipcRenderer.invoke('write-torrent-chunk', streamId, chunkData, offset),
   closeTorrentStream: (streamId: string, fileName: string) => 
-    ipcRenderer.invoke('close-torrent-stream', streamId, fileName)
+    ipcRenderer.invoke('close-torrent-stream', streamId, fileName),
+  // Nouvelle méthode pour lire un fichier pour création de torrent
+  getFileForTorrent: (filePath: string) => 
+    ipcRenderer.invoke('get-file-for-torrent', filePath)
 }
 
 contextBridge.exposeInMainWorld('App', API)

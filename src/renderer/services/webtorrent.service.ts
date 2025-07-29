@@ -503,6 +503,122 @@ export class WebTorrentService {
     this.client.destroy();
   }
 
+  // Nouvelle méthode pour créer un magnet link à partir d'un fichier local
+  public async createMagnetLinkFromFile(filePath: string, fileName?: string): Promise<{ magnetURI: string; torrent: WebTorrent.Torrent; error?: string }> {
+    return new Promise((resolve) => {
+      try {
+        // Demander le fichier au processus principal
+        window.App.getFileForTorrent(filePath).then((fileResult: any) => {
+          if (!fileResult.success) {
+            resolve({ magnetURI: '', torrent: null as any, error: fileResult.error });
+            return;
+          }
+
+          const { fileData, originalFileName } = fileResult;
+          const torrentName = fileName || originalFileName;
+          
+          // Créer un File object à partir des données
+          const file = new File([fileData], torrentName);
+          
+          // Options pour la création du torrent
+          const options = {
+            name: torrentName,
+            comment: 'Created by Science Data Sharing App',
+            createdBy: 'Science Data Sharing App v1.0.0',
+            private: false,
+            announceList: [
+              ['wss://tracker.btorrent.xyz'],
+              ['wss://tracker.openwebtorrent.com'], 
+              ['wss://tracker.fastcast.nz']
+            ]
+          };
+
+          // Créer le torrent et commencer le seeding
+          const torrent = this.client.seed([file], options);
+          const torrentKey = `seeded-${Date.now()}`;
+          (torrent as any).key = torrentKey;
+
+          // Ajouter les événements pour ce torrent
+          this.addTorrentEvents(torrent);
+
+          torrent.on('ready', () => {
+            console.log('Torrent créé et seeding démarré:', {
+              magnetURI: torrent.magnetURI,
+              name: torrent.name,
+              infoHash: torrent.infoHash
+            });
+
+            // Émettre un événement pour notifier l'interface
+            window.dispatchEvent(new CustomEvent('torrent-seeding-started', {
+              detail: {
+                torrentKey,
+                magnetURI: torrent.magnetURI,
+                name: torrent.name,
+                filePath
+              }
+            }));
+
+            resolve({ 
+              magnetURI: torrent.magnetURI, 
+              torrent 
+            });
+          });
+
+          torrent.on('error', (error: any) => {
+            console.error('Erreur lors de la création du torrent:', error);
+            resolve({ 
+              magnetURI: '', 
+              torrent: null as any, 
+              error: error.message || 'Erreur lors de la création du torrent' 
+            });
+          });
+
+        }).catch((error: any) => {
+          resolve({ 
+            magnetURI: '', 
+            torrent: null as any, 
+            error: error.message || 'Erreur lors de la lecture du fichier' 
+          });
+        });
+
+      } catch (error: any) {
+        console.error('Erreur lors de la création du torrent:', error);
+        resolve({ 
+          magnetURI: '', 
+          torrent: null as any, 
+          error: error.message || 'Erreur lors de la création du torrent' 
+        });
+      }
+    });
+  }
+
+  // Méthode pour arrêter le seeding d'un torrent
+  public stopSeeding(torrentKey: string): void {
+    const torrent = this.client.torrents.find((t: any) => (t as any).key === torrentKey);
+    if (torrent) {
+      console.log('Arrêt du seeding pour:', torrent.name);
+      torrent.destroy();
+      
+      // Émettre un événement
+      window.dispatchEvent(new CustomEvent('torrent-seeding-stopped', {
+        detail: { torrentKey, name: torrent.name }
+      }));
+    }
+  }
+
+  // Méthode pour obtenir la liste des torrents en cours de seeding
+  public getSeedingTorrents(): Array<{ key: string; name: string; magnetURI: string; uploaded: number; ratio: number }> {
+    return this.client.torrents
+      .filter((torrent: any) => torrent.ready)
+      .map((torrent: any) => ({
+        key: (torrent as any).key || 'unknown',
+        name: torrent.name,
+        magnetURI: torrent.magnetURI,
+        uploaded: torrent.uploaded,
+        ratio: torrent.ratio
+      }));
+  }
+
   // Méthode simplifiée pour le streaming de fichier
   private createFileStream(file: any, torrentKey: string, fileIndex: number): void {
     console.log(`Streaming: ${file.name}`);
@@ -578,19 +694,6 @@ export class WebTorrentService {
     }));
   }
 
-  // Supprimer l'ancienne méthode saveFileToDownloadPath
-  // private saveFileToDownloadPath(file: any, torrentKey: string, fileIndex: number): void {
-  //   // Cette méthode est remplacée par createFileStream qui fait du streaming
-  // }
-
-  // Supprimer les anciennes méthodes de téléchargement manuel
-  // public downloadFile(torrent: WebTorrent.Torrent, fileIndex: number): void {
-  //   // Cette méthode n'est plus nécessaire car les fichiers sont sauvegardés automatiquement
-  // }
-
-  // public downloadAllFiles(torrent: WebTorrent.Torrent): void {
-  //   // Cette méthode n'est plus nécessaire car les fichiers sont sauvegardés automatiquement
-  // }
 
   // Prépare les fichiers pour le streaming
   private prepareFilesForDownload(torrent: WebTorrent.Torrent, torrentKey: string): void {

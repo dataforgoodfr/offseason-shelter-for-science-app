@@ -113,4 +113,27 @@ export function registerDownloadDataset() {
       return { success: false, error: error.message }
     }
   })
+
+  // Nouveau handler pour lire un fichier pour création de torrent
+  ipcMain.handle('get-file-for-torrent', async (event, filePath: string) => {
+    try {
+      // Vérifier que le fichier existe
+      await fs.access(filePath)
+      
+      // Lire le fichier
+      const fileData = await fs.readFile(filePath)
+      
+      // Extraire le nom du fichier
+      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'unknown'
+      
+      return { 
+        success: true, 
+        fileData: fileData.buffer, 
+        originalFileName: fileName 
+      }
+    } catch (error: any) {
+      console.error('Error reading file for torrent:', error)
+      return { success: false, error: error.message }
+    }
+  })
 }
