@@ -18,6 +18,16 @@ interface TorrentDownloadState {
   torrentName: string | null
   downloaded: string
   peers: number
+  savedFiles: Array<{
+    name: string
+    filePath: string
+    saved: boolean
+    error?: string
+    streaming?: boolean
+    progress?: number
+    bytesWritten?: number
+    totalSize?: number
+  }>
 }
 
 export const TorrentDownloader: React.FC = () => {
@@ -31,11 +41,13 @@ export const TorrentDownloader: React.FC = () => {
     torrentName: null,
     downloaded: '0 MB',
     peers: 0,
+    savedFiles: [],
   })
 
   useEffect(() => {
     // Écouter les mises à jour de progression des torrents
-    const handleTorrentProgress = (progress: any) => {
+    const handleTorrentProgress = (event: CustomEvent) => {
+      const progress = event.detail
       if (progress.torrents && progress.torrents.length > 0) {
         const torrent = progress.torrents[0] // Prendre le premier torrent
         setDownloadState(prev => ({
@@ -45,23 +57,34 @@ export const TorrentDownloader: React.FC = () => {
           downloaded: `${(torrent.downloaded / 1024 / 1024).toFixed(1)} MB`,
           peers: torrent.numPeers,
           eta:
-            torrent.progress > 0
-              ? `${Math.round((torrent.length - torrent.downloaded) / (torrent.downloadSpeed || 1))}s`
+            torrent.progress > 0 && torrent.downloadSpeed > 0
+              ? `${Math.round((torrent.length - torrent.downloaded) / torrent.downloadSpeed)}s`
               : '--',
         }))
       }
     }
 
     // Écouter les événements WebTorrent
-    const handleTorrentReady = (torrentKey: string, info: any) => {
+    const handleTorrentReady = (event: CustomEvent) => {
+      const { torrentKey, info } = event.detail
       setDownloadState(prev => ({
         ...prev,
         torrentName: info.name,
         isDownloading: true,
+        error: null,
       }))
     }
 
-    const handleTorrentDone = (torrentKey: string, info: any) => {
+    const handleTorrentMetadata = (event: CustomEvent) => {
+      const { torrentKey, info } = event.detail
+      setDownloadState(prev => ({
+        ...prev,
+        torrentName: info.name,
+      }))
+    }
+
+    const handleTorrentDone = (event: CustomEvent) => {
+      const { torrentKey, info } = event.detail
       setDownloadState(prev => ({
         ...prev,
         progress: 100,
@@ -69,7 +92,8 @@ export const TorrentDownloader: React.FC = () => {
       }))
     }
 
-    const handleTorrentError = (torrentKey: string, error: string) => {
+    const handleTorrentError = (event: CustomEvent) => {
+      const { torrentKey, error } = event.detail
       setDownloadState(prev => ({
         ...prev,
         isDownloading: false,
@@ -77,20 +101,149 @@ export const TorrentDownloader: React.FC = () => {
       }))
     }
 
-    // Ajouter les listeners (ces événements devront être exposés via le preload)
-    ;(window as any).addEventListener('torrent-progress', handleTorrentProgress)
-    ;(window as any).addEventListener('torrent-ready', handleTorrentReady)
-    ;(window as any).addEventListener('torrent-done', handleTorrentDone)
-    ;(window as any).addEventListener('torrent-error', handleTorrentError)
+    const handleTorrentFilesReady = (event: CustomEvent) => {
+      const { torrentKey, files, torrent } = event.detail
+      setDownloadState(prev => ({
+        ...prev,
+        files: files,
+        currentTorrent: torrent,
+      }))
+    }
+
+    const handleTorrentFileStreaming = (event: CustomEvent) => {
+      const { torrentKey, fileName, filePath, streamId } = event.detail
+      setDownloadState(prev => ({
+        ...prev,
+        savedFiles: [
+          ...prev.savedFiles.filter(f => f.name !== fileName),
+          {
+            name: fileName,
+            filePath,
+            saved: false,
+            streaming: true,
+            progress: 0,
+            bytesWritten: 0,
+            totalSize: 0,
+          },
+        ],
+      }))
+    }
+
+    const handleTorrentFileProgress = (event: CustomEvent) => {
+      const { torrentKey, fileName, bytesWritten, totalSize, progress } =
+        event.detail
+      setDownloadState(prev => ({
+        ...prev,
+        savedFiles: prev.savedFiles.map(file =>
+          file.name === fileName
+            ? {
+                ...file,
+                progress,
+                bytesWritten,
+                totalSize,
+                streaming: true,
+              }
+            : file
+        ),
+      }))
+    }
+
+    const handleTorrentFileSaved = (event: CustomEvent) => {
+      const { torrentKey, fileName, filePath } = event.detail
+      setDownloadState(prev => ({
+        ...prev,
+        savedFiles: prev.savedFiles.map(file =>
+          file.name === fileName
+            ? { ...file, saved: true, streaming: false, progress: 100 }
+            : file
+        ),
+      }))
+    }
+
+    const handleTorrentFileSaveError = (event: CustomEvent) => {
+      const { torrentKey, fileName, error } = event.detail
+      setDownloadState(prev => ({
+        ...prev,
+        savedFiles: prev.savedFiles.map(file =>
+          file.name === fileName
+            ? { ...file, saved: false, streaming: false, error }
+            : file
+        ),
+      }))
+    }
+
+    // Ajouter les listeners pour les événements CustomEvent
+    window.addEventListener(
+      'torrent-progress',
+      handleTorrentProgress as EventListener
+    )
+    window.addEventListener(
+      'torrent-ready',
+      handleTorrentReady as EventListener
+    )
+    window.addEventListener(
+      'torrent-metadata',
+      handleTorrentMetadata as EventListener
+    )
+    window.addEventListener('torrent-done', handleTorrentDone as EventListener)
+    window.addEventListener(
+      'torrent-error',
+      handleTorrentError as EventListener
+    )
+    window.addEventListener(
+      'torrent-file-streaming',
+      handleTorrentFileStreaming as EventListener
+    )
+    window.addEventListener(
+      'torrent-file-progress',
+      handleTorrentFileProgress as EventListener
+    )
+    window.addEventListener(
+      'torrent-file-saved',
+      handleTorrentFileSaved as EventListener
+    )
+    window.addEventListener(
+      'torrent-file-save-error',
+      handleTorrentFileSaveError as EventListener
+    )
 
     return () => {
-      ;(window as any).removeEventListener(
+      window.removeEventListener(
         'torrent-progress',
-        handleTorrentProgress
+        handleTorrentProgress as EventListener
       )
-      ;(window as any).removeEventListener('torrent-ready', handleTorrentReady)
-      ;(window as any).removeEventListener('torrent-done', handleTorrentDone)
-      ;(window as any).removeEventListener('torrent-error', handleTorrentError)
+      window.removeEventListener(
+        'torrent-ready',
+        handleTorrentReady as EventListener
+      )
+      window.removeEventListener(
+        'torrent-metadata',
+        handleTorrentMetadata as EventListener
+      )
+      window.removeEventListener(
+        'torrent-done',
+        handleTorrentDone as EventListener
+      )
+      window.removeEventListener(
+        'torrent-error',
+        handleTorrentError as EventListener
+      )
+      window.removeEventListener(
+        'torrent-file-streaming',
+        handleTorrentFileStreaming as EventListener
+      )
+      window.removeEventListener(
+        'torrent-file-progress',
+        handleTorrentFileProgress as EventListener
+      )
+      window.removeEventListener(
+        'torrent-file-saved',
+        handleTorrentFileSaved as EventListener
+      )
+      window.removeEventListener(
+        'torrent-file-save-error',
+        handleTorrentFileSaveError as EventListener
+      )
     }
   }, [])
 
@@ -112,10 +265,10 @@ export const TorrentDownloader: React.FC = () => {
       torrentName: null,
       downloaded: '0 MB',
       peers: 0,
+      savedFiles: [],
     })
 
     try {
-      // Utiliser le service WebTorrent pour démarrer le téléchargement
       const torrentKey = `torrent-${Date.now()}`
       webTorrentService.startTorrenting(torrentKey, magnetLink)
     } catch (error: any) {
@@ -125,6 +278,14 @@ export const TorrentDownloader: React.FC = () => {
         error: error?.message || error || 'Échec du téléchargement',
       }))
     }
+  }
+
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return `${(bytes / k ** i).toFixed(1)} ${sizes[i]}`
   }
 
   return (
@@ -147,6 +308,19 @@ export const TorrentDownloader: React.FC = () => {
               : 'border-white/30 hover:border-white/50 focus:border-white/70'
           }`}
         />
+
+        {/* Bouton de test */}
+        <button
+          onClick={() =>
+            setMagnetLink(
+              'magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Big+Buck+Bunny&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F&xs=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fbig-buck-bunny.torrent'
+            )
+          }
+          disabled={downloadState.isDownloading}
+          className="mt-2 text-xs bg-white/5 hover:bg-white/10 text-white/70 hover:text-white px-3 py-1 rounded transition-colors duration-200"
+        >
+          📺 Utiliser Big Buck Bunny (test)
+        </button>
       </div>
 
       {/* Download Button */}
@@ -218,6 +392,71 @@ export const TorrentDownloader: React.FC = () => {
         </div>
       )}
 
+      {/* Files Status - shown when files are being saved */}
+      {downloadState.savedFiles.length > 0 && (
+        <div className="mt-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
+          <h3 className="text-sm font-medium text-white mb-3">
+            Fichiers ({downloadState.savedFiles.filter(f => f.saved).length}/
+            {downloadState.savedFiles.length} sauvegardés)
+          </h3>
+
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {downloadState.savedFiles.map((file, index) => (
+              <div key={index} className="bg-white/5 rounded p-2">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-sm font-medium text-white truncate flex-1">
+                    {file.name}
+                  </div>
+                  <div className="ml-2">
+                    {file.saved ? (
+                      <span className="text-green-400">✅</span>
+                    ) : file.streaming ? (
+                      <span className="text-blue-400">🔄</span>
+                    ) : file.error ? (
+                      <span className="text-red-400">❌</span>
+                    ) : (
+                      <span className="text-gray-400">⏳</span>
+                    )}
+                  </div>
+                </div>
+
+                {file.streaming && file.progress !== undefined && (
+                  <div>
+                    <div className="flex items-center justify-between text-xs text-white/70 mb-1">
+                      <span>Sauvegarde: {file.progress}%</span>
+                      <span>
+                        {file.bytesWritten
+                          ? formatBytes(file.bytesWritten)
+                          : '0 B'}{' '}
+                        / {file.totalSize ? formatBytes(file.totalSize) : '0 B'}
+                      </span>
+                    </div>
+                    <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-400 transition-all duration-300 ease-out"
+                        style={{ width: `${file.progress || 0}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {file.saved && (
+                  <div className="text-xs text-green-400 truncate mt-1">
+                    ✅ Sauvegardé : {file.filePath}
+                  </div>
+                )}
+
+                {!file.saved && file.error && (
+                  <div className="text-xs text-red-400 mt-1">
+                    ❌ Erreur : {file.error}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Error Message */}
       {downloadState.error && (
         <div className="mt-4 bg-red-500/20 border border-red-500/30 rounded-lg p-3 flex items-start space-x-2">
@@ -230,19 +469,22 @@ export const TorrentDownloader: React.FC = () => {
       )}
 
       {/* Success Message */}
-      {downloadState.progress === 100 && !downloadState.isDownloading && (
-        <div className="mt-4 bg-green-500/20 border border-green-500/30 rounded-lg p-3 flex items-start space-x-2">
-          <CheckIcon className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <div className="text-sm font-medium text-green-300">
-              Téléchargement terminé!
-            </div>
-            <div className="text-xs text-green-200 mt-1">
-              {downloadState.torrentName}
+      {downloadState.progress === 100 &&
+        !downloadState.isDownloading &&
+        downloadState.savedFiles.length > 0 && (
+          <div className="mt-4 bg-green-500/20 border border-green-500/30 rounded-lg p-3 flex items-start space-x-2">
+            <CheckIcon className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <div className="text-sm font-medium text-green-300">
+                Téléchargement terminé!
+              </div>
+              <div className="text-xs text-green-200 mt-1">
+                {downloadState.savedFiles.filter(f => f.saved).length}{' '}
+                fichier(s) sauvegardé(s) dans le dossier sélectionné
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   )
 }
