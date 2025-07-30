@@ -5,7 +5,7 @@ import {
   getSeedingData,
   saveSeedingInfo,
   removeSeedingInfo,
-} from "lib/electron-app/services/store.service";
+} from "main/services/store.service";
 
 export function registerSeedingManagement() {
   // Sauvegarder les infos de seeding

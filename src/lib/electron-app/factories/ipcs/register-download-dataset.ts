@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron'
 import { promises as fs } from 'fs'
 import { join } from 'path'
-import { getDownloadPath } from '../../services/store.service'
-import { downloadDataset } from '../../services/download.service'
+import { getDownloadPath } from '../../../../main/services/store.service'
+import { downloadDataset } from '../../../../main/services/download.service'
 
 export function registerDownloadDataset() {
   ipcMain.handle('download-dataset', async (event, datasetId: string) => {

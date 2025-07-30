@@ -1,6 +1,6 @@
 // src/services/HttpService.ts
 import axios, { type AxiosInstance, type AxiosResponse, type AxiosRequestConfig } from 'axios';
-import { config } from '../../../config';
+import { config } from '../../config';
 
 class HttpService {
   private client: AxiosInstance;
