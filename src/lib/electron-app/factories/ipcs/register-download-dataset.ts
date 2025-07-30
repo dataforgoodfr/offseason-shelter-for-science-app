@@ -23,37 +23,6 @@ export function registerDownloadDataset() {
     }
   })
 
-  // Nouveau handler pour sauvegarder les fichiers torrents
-  ipcMain.handle('save-torrent-file', async (event, fileName: string, fileData: ArrayBuffer, customPath?: string) => {
-    try {
-      const downloadPath = customPath || getDownloadPath()
-      if (!downloadPath) {
-        throw new Error('No download path set')
-      }
-
-      // Créer le chemin complet du fichier
-      const filePath = join(downloadPath, fileName)
-      
-      // Convertir ArrayBuffer en Buffer
-      const buffer = Buffer.from(fileData)
-      
-      // Écrire le fichier sur le disque
-      await fs.writeFile(filePath, buffer)
-      
-      // Notifier le succès
-      event.sender.send('torrent-save-progress', fileName, true)
-      
-      return { success: true, filePath }
-    } catch (error: any) {
-      console.error('Torrent file save error:', error)
-      
-      // Notifier l'erreur
-      event.sender.send('torrent-save-progress', fileName, false, error.message)
-      
-      return { success: false, error: error.message }
-    }
-  })
-
   // Nouveaux handlers pour le streaming de fichiers torrents
   const activeStreams = new Map<string, fs.FileHandle>()
 
@@ -103,13 +72,9 @@ export function registerDownloadDataset() {
         activeStreams.delete(streamId)
       }
       
-      // Notifier que le fichier est complètement sauvegardé
-      event.sender.send('torrent-save-progress', fileName, true)
-      
       return { success: true }
     } catch (error: any) {
       console.error('Error closing torrent stream:', error)
-      event.sender.send('torrent-save-progress', fileName, false, error.message)
       return { success: false, error: error.message }
     }
   })

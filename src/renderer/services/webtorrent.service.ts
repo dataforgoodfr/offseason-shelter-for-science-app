@@ -59,20 +59,10 @@ export class WebTorrentService {
   private progressUpdateInterval: NodeJS.Timeout | null = null;
   private prevProgress: TorrentProgress | null = null;
 
-  constructor() {
-    console.time('WebTorrent init');
-    
+  constructor() { 
     this.initializeClient();
     this.init();
-    
-    console.timeEnd('WebTorrent init');
   }
-
-  private randomBytes = (size: number) => {
-    const array = new Uint8Array(size);
-    window.crypto.getRandomValues(array);
-    return array;
-  };
 
   private generatePeerId(): Uint8Array {
     // WebTorrent requires peerId to be exactly 20 bytes
@@ -105,11 +95,9 @@ export class WebTorrentService {
     // Generate a proper 20-byte peer ID
     const PEER_ID = this.generatePeerId();
 
-    // Connect to the WebTorrent and BitTorrent networks. This is a hybrid client
     this.client = new WebTorrent({ 
       peerId: PEER_ID,
-      // Configuration pour éviter les erreurs Node.js dans le navigateur
-      maxConns: 25, // Réduire le nombre de connexions
+      maxConns: 25,
       dht: true,
       tracker: true,
       webSeeds: true,
@@ -117,31 +105,20 @@ export class WebTorrentService {
     });
     
     // Make client globally accessible for debugging
-    (window as any).client = this.client;
+    //(window as any).client = this.client;
   }
 
   private init(): void {
     this.listenToClientEvents();
-    this.setupIpcHandlers();
     this.startProgressUpdates();
-    
-    // Notify main process that WebTorrent is ready
-    // ipcRenderer.send('ipcReadyWebTorrent'); // This line is removed
-    (window.App as any).sayHelloFromBridge(); // This line is added
 
     // Handle uncaught errors
     window.addEventListener('error', (e) => {
-      // ipcRenderer.send('wt-uncaught-error', { 
-      //   message: e.error.message, 
-      //   stack: e.error.stack 
-      // }); // This line is removed
       console.error('WebTorrent uncaught error:', e.error);
     }, true);
   }
 
   private listenToClientEvents(): void {
-
-
     this.client.on('error', (err: string | Error) => {
       const message = typeof err === 'string' ? err : err.message;
       console.error('WebTorrent error:', message);
@@ -150,22 +127,12 @@ export class WebTorrentService {
     });
   }
 
-  private setupIpcHandlers(): void {
-    // Note: Les handlers IPC devront être gérés différemment
-    // car ipcRenderer n'est pas directement accessible dans le renderer
-    console.log('Setting up WebTorrent IPC handlers...');
-  }
-
   private startProgressUpdates(): void {
     this.progressUpdateInterval = setInterval(() => {
       this.updateTorrentProgress();
     }, 1000);
   }
 
-  // Sets the default trackers
-  public setGlobalTrackers(globalTrackers: string[]): void {
-    (globalThis as any).WEBTORRENT_ANNOUNCE = globalTrackers;
-  }
 
   // Starts a given TorrentID, which can be an infohash, magnet URI, etc.
   public startTorrenting(
@@ -219,8 +186,6 @@ export class WebTorrentService {
     const torrent = this.client.seed(paths, options);
     (torrent as any).key = torrentKey;
     this.addTorrentEvents(torrent);
-    // ipcRenderer.send('wt-new-torrent'); // This line is removed
-    (window.App as any).sayHelloFromBridge(); // This line is added
   }
 
   private addTorrentEvents(torrent: WebTorrent.Torrent): void {
@@ -282,23 +247,6 @@ export class WebTorrentService {
     };
   }
 
-  // Every time we resolve a magnet URI, save the torrent file
-  public saveTorrentFile(torrentKey: string): void {
-    try {
-      const torrent = this.getTorrent(torrentKey);
-      const fileName = `${torrent.infoHash}.torrent`;
-      
-      // In renderer process, we send the torrent file data to main process for saving
-      if ((torrent as any).torrentFile) {
-        // ipcRenderer.send('wt-save-torrent-file-data', torrentKey, fileName, (torrent as any).torrentFile); // This line is removed
-        console.log('WebTorrent saving torrent file data:', torrentKey, fileName, (torrent as any).torrentFile);
-      } else {
-        console.warn('Torrent file not available for', torrentKey);
-      }
-    } catch (error) {
-      console.error('Error saving torrent file:', error);
-    }
-  }
 
   private updateTorrentProgress(): void {
     const progress = this.getTorrentProgress();
@@ -387,9 +335,7 @@ export class WebTorrentService {
         networkAddress: networkAddr
       };
 
-      // ipcRenderer.send('wt-server-running', info); // This line is removed
       console.log('WebTorrent server running:', info);
-      // ipcRenderer.send(`wt-server-${torrent.infoHash}`, info); // This line is removed
       console.log(`WebTorrent server ${torrent.infoHash} running:`, info);
     });
   }
@@ -456,27 +402,6 @@ export class WebTorrentService {
     // In renderer process, we might need to get this from main process
     // For now, return localhost as fallback
     return 'localhost';
-  }
-
-  private onError(err: Error): void {
-    console.error('WebTorrent error:', err);
-  }
-
-  // Test offline mode (for debugging)
-  public testOfflineMode(): void {
-    console.log('Test, going OFFLINE');
-    
-    // Generate a proper 20-byte peer ID
-    const PEER_ID = this.generatePeerId();
-    
-    this.client = new WebTorrent({
-      peerId: PEER_ID,
-      tracker: false,
-      dht: false,
-      webSeeds: false
-    });
-    this.listenToClientEvents();
-    (window as any).client = this.client;
   }
 
   // Public methods for external access
@@ -707,6 +632,4 @@ export class WebTorrentService {
 
 // Initialize and make globally available
 const webTorrentService = new WebTorrentService();
-(window as any).webTorrentService = webTorrentService;
-
 export default webTorrentService;

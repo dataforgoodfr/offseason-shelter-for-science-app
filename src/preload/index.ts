@@ -21,15 +21,6 @@ const API = {
   removeDownloadProgressListener: () => {
     ipcRenderer.removeAllListeners('download-progress')
   },
-  // Nouvelles méthodes pour les torrents
-  saveTorrentFile: (fileName: string, fileData: ArrayBuffer, downloadPath: string) => 
-    ipcRenderer.invoke('save-torrent-file', fileName, fileData, downloadPath),
-  onTorrentSaveProgress: (callback: (fileName: string, saved: boolean, error?: string) => void) => {
-    ipcRenderer.on('torrent-save-progress', (_, fileName, saved, error) => callback(fileName, saved, error))
-  },
-  removeTorrentSaveProgressListener: () => {
-    ipcRenderer.removeAllListeners('torrent-save-progress')
-  },
   // Nouvelles méthodes pour le streaming
   createTorrentStream: (fileName: string, downloadPath?: string) => 
     ipcRenderer.invoke('create-torrent-stream', fileName, downloadPath),
