@@ -61,6 +61,8 @@ export function MainScreen() {
         </button>
       </div>
 
+      <div className="border-b border-white/20 mb-6"></div>
+
       {/* Dataset Downloader */}
       <h2 className="text-sm font-semibold mb-3 uppercase tracking-wide">
         Dataset Downloader
@@ -71,6 +73,8 @@ export function MainScreen() {
       <div className="mb-6">
         <DatasetDownloader datasetName="ocean-temperature-data" />
       </div>
+
+      <div className="border-b border-white/20 mb-6"></div>
 
       {/* Torrent Downloader */}
       <div className="mb-6">

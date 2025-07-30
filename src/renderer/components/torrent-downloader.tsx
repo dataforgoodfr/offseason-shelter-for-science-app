@@ -89,7 +89,7 @@ export const TorrentDownloader: React.FC = () => {
           disabled={downloadState.isDownloading}
           className="mt-2 text-xs bg-white/5 hover:bg-white/10 text-white/70 hover:text-white px-3 py-1 rounded transition-colors duration-200"
         >
-          📺 Utiliser Big Buck Bunny (test)
+          📺 Utiliser Big Buck Bunny
         </button>
       </div>
 
