@@ -24,6 +24,7 @@ export function registerSeedingManagement() {
   ipcMain.handle("get-seeding-data", async () => {
     try {
       const data = getSeedingData();
+      console.log(data);
       console.log('📊 Récupération des données de seeding:', Object.keys(data).length, 'fichiers');
       return data;
     } catch (error: any) {

@@ -5,7 +5,6 @@ import {
   ArrowDownIcon,
   CheckIcon,
   ExclamationTriangleIcon,
-  ShareIcon,
 } from '@heroicons/react/24/outline'
 import webTorrentService from 'renderer/services/webtorrent.service'
 
@@ -23,7 +22,9 @@ interface DownloadState {
   isSeeding: boolean
 }
 
-export const DatasetDownloader: React.FC = () => {
+export const DatasetDownloader: React.FC<{ datasetName: string }> = ({
+  datasetName,
+}) => {
   const [downloadState, setDownloadState] = useState<DownloadState>({
     isDownloading: false,
     progress: 0,
@@ -70,7 +71,7 @@ export const DatasetDownloader: React.FC = () => {
 
     try {
       // Phase 1: Téléchargement
-      const result = await window.App.downloadDataset('climate-data')
+      const result = await window.App.downloadDataset(datasetName)
 
       if (result.success && result.filePath) {
         console.log(
@@ -173,10 +174,6 @@ export const DatasetDownloader: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-sm font-semibold mb-3 uppercase tracking-wide">
-        Dataset Downloader
-      </h2>
-
       {/* Download Button */}
       <button
         onClick={handleDownload}
@@ -189,7 +186,9 @@ export const DatasetDownloader: React.FC = () => {
       >
         <ArrowDownIcon className="w-4 h-4" />
         <span>
-          {downloadState.isDownloading ? 'Downloading...' : 'Download Dataset1'}
+          {downloadState.isDownloading
+            ? 'Downloading...'
+            : `Download Dataset '${datasetName}'`}
         </span>
       </button>
 

@@ -62,8 +62,14 @@ export function MainScreen() {
       </div>
 
       {/* Dataset Downloader */}
+      <h2 className="text-sm font-semibold mb-3 uppercase tracking-wide">
+        Dataset Downloader
+      </h2>
       <div className="mb-6">
-        <DatasetDownloader />
+        <DatasetDownloader datasetName="climate-data" />
+      </div>
+      <div className="mb-6">
+        <DatasetDownloader datasetName="ocean-temperature-data" />
       </div>
 
       {/* Torrent Downloader */}
