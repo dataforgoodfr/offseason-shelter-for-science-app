@@ -46,7 +46,6 @@ export class WebTorrentService {
   constructor() {
     this.initializeClient();
     this.startProgressUpdates();
-    this.setupErrorHandling();
   }
 
   // === INITIALISATION ===
@@ -74,12 +73,6 @@ export class WebTorrentService {
     });
   }
 
-  private setupErrorHandling(): void {
-    window.addEventListener('error', (e) => {
-      console.error('WebTorrent uncaught error:', e.error);
-    }, true);
-  }
-
   private startProgressUpdates(): void {
     this.progressUpdateInterval = setInterval(() => {
       this.updateTorrentProgress();
@@ -90,7 +83,6 @@ export class WebTorrentService {
   public startTorrenting(
     torrentKey: string,
     torrentID: string,
-    selections?: boolean[]
   ): void {
     console.log('Starting torrent:', torrentKey, torrentID);
 
@@ -99,7 +91,6 @@ export class WebTorrentService {
       (torrent as any).key = torrentKey;
 
       this.setupTorrentEvents(torrent);
-      torrent.once('ready', () => this.selectFiles(torrent, selections));
     } catch (error) {
       console.error('Erreur lors du démarrage du torrent:', error);
       this.emitEvent('torrent-error', {
@@ -387,38 +378,6 @@ export class WebTorrentService {
   }
 
   // === UTILITAIRES ===
-  private selectFiles(torrentOrInfoHash: WebTorrent.Torrent | string, selections?: boolean[]): void {
-    let torrent: WebTorrent.Torrent;
-    if (typeof torrentOrInfoHash === 'string') {
-      const foundTorrent = this.client.get(torrentOrInfoHash);
-      if (!foundTorrent) {
-        throw new Error(`selectFiles: missing torrent ${torrentOrInfoHash}`);
-      }
-      torrent = foundTorrent;
-    } else {
-      torrent = torrentOrInfoHash;
-    }
-
-    const selectionsToUse = selections || new Array(torrent.files.length).fill(true);
-
-    if (selectionsToUse.length !== torrent.files.length) {
-      throw new Error(`got ${selectionsToUse.length} file selections, but the torrent contains ${torrent.files.length} files`);
-    }
-
-    // Supprimer la sélection par défaut (torrent entier)
-    torrent.deselect(0, torrent.pieces.length - 1, 0);
-
-    // Ajouter les sélections individuelles
-    selectionsToUse.forEach((selection, i) => {
-      const file = torrent.files[i];
-      if (selection) {
-        file.select();
-      } else {
-        file.deselect();
-      }
-    });
-  }
-
   private getTorrentInfo(torrent: WebTorrent.Torrent): TorrentInfo {
     return {
       infoHash: torrent.infoHash,
