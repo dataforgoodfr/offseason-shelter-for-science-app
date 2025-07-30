@@ -38,10 +38,29 @@ export interface TorrentInfo {
   bytesReceived: number;
 }
 
+// === INTERFACES POUR LES CALLBACKS ===
+export interface TorrentCallbacks {
+  onReady?: (data: { torrentKey: string; info: TorrentInfo }) => void;
+  onDone?: (data: { torrentKey: string; info: TorrentInfo }) => void;
+  onError?: (data: { torrentKey: string; error: string }) => void;
+  onFileStreaming?: (data: { torrentKey: string; fileName: string; filePath: string; streamId: string }) => void;
+  onFileProgress?: (data: { torrentKey: string; fileName: string; bytesWritten: number; totalSize: number; progress: number }) => void;
+  onFileSaved?: (data: { torrentKey: string; fileName: string; filePath: string }) => void;
+  onFileSaveError?: (data: { torrentKey: string; fileName: string; error: string }) => void;
+  onProgress?: (progress: TorrentProgress) => void;
+}
+
+export interface SeedingCallbacks {
+  onSeedingStarted?: (data: { torrentKey: string; magnetURI: string; name: string; filePath: string }) => void;
+  onSeedingStopped?: (data: { torrentKey: string; name: string }) => void;
+  onError?: (data: { torrentKey?: string; error: string }) => void;
+}
+
 export class WebTorrentService {
   private client!: WebTorrent.Instance;
   private progressUpdateInterval: NodeJS.Timeout | null = null;
   private prevProgress: TorrentProgress | null = null;
+  private progressCallbacks: Set<(progress: TorrentProgress) => void> = new Set();
 
   constructor() {
     this.initializeClient();
@@ -80,10 +99,20 @@ export class WebTorrentService {
     }, 1000);
   }
 
+  // === GESTION DES CALLBACKS DE PROGRÈS GLOBAUX ===
+  public subscribeToProgress(callback: (progress: TorrentProgress) => void): void {
+    this.progressCallbacks.add(callback);
+  }
+
+  public unsubscribeFromProgress(callback: (progress: TorrentProgress) => void): void {
+    this.progressCallbacks.delete(callback);
+  }
+
   // === TÉLÉCHARGEMENT DE TORRENTS ===
   public startTorrenting(
     torrentKey: string,
     torrentID: string,
+    callbacks: TorrentCallbacks,
   ): void {
     console.log('Starting torrent:', torrentKey, torrentID);
 
@@ -91,10 +120,10 @@ export class WebTorrentService {
       const torrent = this.client.add(torrentID, {});
       (torrent as any).key = torrentKey;
 
-      this.setupTorrentEvents(torrent);
+      this.setupTorrentEvents(torrent, callbacks);
     } catch (error) {
       console.error('Erreur lors du démarrage du torrent:', error);
-      this.emitEvent('torrent-error', {
+      callbacks.onError?.({
         torrentKey,
         error: error instanceof Error ? error.message : 'Erreur inconnue'
       });
@@ -108,12 +137,18 @@ export class WebTorrentService {
   }
 
   // === CRÉATION ET SEEDING DE TORRENTS ===
-  public async createMagnetLinkFromFile(filePath: string, fileName?: string): Promise<{ magnetURI: string; torrent: WebTorrent.Torrent; error?: string }> {
+  public async createMagnetLinkFromFile(
+    filePath: string, 
+    fileName?: string, 
+    callbacks: SeedingCallbacks = {}
+  ): Promise<{ magnetURI: string; torrent: WebTorrent.Torrent; error?: string }> {
     return new Promise((resolve) => {
       try {
         window.App.getFileForTorrent(filePath).then((fileResult: any) => {
           if (!fileResult.success) {
-            resolve({ magnetURI: '', torrent: null as any, error: fileResult.error });
+            const error = fileResult.error;
+            callbacks.onError?.({ error });
+            resolve({ magnetURI: '', torrent: null as any, error });
             return;
           }
 
@@ -137,12 +172,12 @@ export class WebTorrentService {
           const torrentKey = `seeded-${Date.now()}`;
           (torrent as any).key = torrentKey;
 
-          this.setupTorrentEvents(torrent);
+          this.setupSeedingEvents(torrent, callbacks, filePath);
 
           torrent.on('ready', () => {
             console.log('Torrent créé et seeding démarré:', torrent.name);
             
-            this.emitEvent('torrent-seeding-started', {
+            callbacks.onSeedingStarted?.({
               torrentKey,
               magnetURI: torrent.magnetURI,
               name: torrent.name,
@@ -154,33 +189,39 @@ export class WebTorrentService {
 
           torrent.on('error', (error: any) => {
             console.error('Erreur lors de la création du torrent:', error);
+            const errorMessage = error.message || 'Erreur lors de la création du torrent';
+            callbacks.onError?.({ torrentKey, error: errorMessage });
             resolve({
               magnetURI: '',
               torrent: null as any,
-              error: error.message || 'Erreur lors de la création du torrent'
+              error: errorMessage
             });
           });
 
         }).catch((error: any) => {
+          const errorMessage = error.message || 'Erreur lors de la lecture du fichier';
+          callbacks.onError?.({ error: errorMessage });
           resolve({
             magnetURI: '',
             torrent: null as any,
-            error: error.message || 'Erreur lors de la lecture du fichier'
+            error: errorMessage
           });
         });
 
       } catch (error: any) {
         console.error('Erreur lors de la création du torrent:', error);
+        const errorMessage = error.message || 'Erreur lors de la création du torrent';
+        callbacks.onError?.({ error: errorMessage });
         resolve({
           magnetURI: '',
           torrent: null as any,
-          error: error.message || 'Erreur lors de la création du torrent'
+          error: errorMessage
         });
       }
     });
   }
 
-  public async stopSeeding(torrentKey: string): Promise<void> {
+  public async stopSeeding(torrentKey: string, callbacks: SeedingCallbacks = {}): Promise<void> {
     const torrent = this.client.torrents.find((t: any) => (t as any).key === torrentKey);
     if (torrent) {
       console.log('🛑 Arrêt du seeding pour:', torrent.name);
@@ -201,7 +242,7 @@ export class WebTorrentService {
       
       torrent.destroy();
       
-      this.emitEvent('torrent-seeding-stopped', {
+      callbacks.onSeedingStopped?.({
         torrentKey,
         name: torrent.name
       });
@@ -221,21 +262,21 @@ export class WebTorrentService {
   }
 
   // === GESTION DES ÉVÉNEMENTS ===
-  private setupTorrentEvents(torrent: WebTorrent.Torrent): void {
+  private setupTorrentEvents(torrent: WebTorrent.Torrent, callbacks: TorrentCallbacks): void {
     const torrentKey = (torrent as any).key;
 
     torrent.on('error', (err: string | Error) => {
       const message = typeof err === 'string' ? err : err.message;
       console.error('Torrent error:', message);
-      this.emitEvent('torrent-error', { torrentKey, error: message });
+      callbacks.onError?.({ torrentKey, error: message });
     });
 
     torrent.on('ready', () => {
       const info = this.getTorrentInfo(torrent);
       console.log('Torrent ready:', torrentKey, info.name);
       
-      this.emitEvent('torrent-ready', { torrentKey, info });
-      this.prepareFilesForDownload(torrent, torrentKey);
+      callbacks.onReady?.({ torrentKey, info });
+      this.prepareFilesForDownload(torrent, torrentKey, callbacks);
       this.updateTorrentProgress();
     });
 
@@ -243,42 +284,56 @@ export class WebTorrentService {
       const info = this.getTorrentInfo(torrent);
       console.log('Torrent done:', torrentKey, info.name);
       
-      this.emitEvent('torrent-done', { torrentKey, info });
+      callbacks.onDone?.({ torrentKey, info });
       this.updateTorrentProgress();
     });
   }
 
-  private emitEvent(eventName: string, detail: any): void {
-    window.dispatchEvent(new CustomEvent(eventName, { detail }));
+  private setupSeedingEvents(torrent: WebTorrent.Torrent, callbacks: SeedingCallbacks, filePath: string): void {
+    const torrentKey = (torrent as any).key;
+
+    torrent.on('error', (err: string | Error) => {
+      const message = typeof err === 'string' ? err : err.message;
+      console.error('Seeding torrent error:', message);
+      callbacks.onError?.({ torrentKey, error: message });
+    });
   }
 
   // === STREAMING DE FICHIERS ===
-  private prepareFilesForDownload(torrent: WebTorrent.Torrent, torrentKey: string): void {
+  private prepareFilesForDownload(torrent: WebTorrent.Torrent, torrentKey: string, callbacks: TorrentCallbacks): void {
     console.log(`Streaming ${torrent.files.length} fichier(s)`);
     
     for (const file of torrent.files) {
-      this.createFileStream(file, torrentKey);
+      this.createFileStream(file, torrentKey, callbacks);
     }
   }
 
-  private createFileStream(file: any, torrentKey: string): void {
+  private createFileStream(file: any, torrentKey: string, callbacks: TorrentCallbacks): void {
     console.log(`Streaming: ${file.name}`);
     
     window.App.createTorrentStream(file.name).then((result: any) => {
       if (!result.success) {
-        this.emitFileError(torrentKey, file.name, result.error);
+        callbacks.onFileSaveError?.({
+          torrentKey,
+          fileName: file.name,
+          error: result.error
+        });
         return;
       }
 
       const { streamId, filePath } = result;
-      this.streamFileToSafer(file, torrentKey, streamId, filePath);
+      this.streamFileToSafer(file, torrentKey, streamId, filePath, callbacks);
     }).catch(error => {
-      this.emitFileError(torrentKey, file.name, error.message);
+      callbacks.onFileSaveError?.({
+        torrentKey,
+        fileName: file.name,
+        error: error.message
+      });
     });
   }
 
-  private streamFileToSafer(file: any, torrentKey: string, streamId: string, filePath: string): void {
-    this.emitEvent('torrent-file-streaming', {
+  private streamFileToSafer(file: any, torrentKey: string, streamId: string, filePath: string, callbacks: TorrentCallbacks): void {
+    callbacks.onFileStreaming?.({
       torrentKey,
       fileName: file.name,
       filePath,
@@ -298,7 +353,7 @@ export class WebTorrentService {
           bytesWritten += chunk.length;
           const progress = Math.round((bytesWritten / file.length) * 100);
           
-          this.emitEvent('torrent-file-progress', {
+          callbacks.onFileProgress?.({
             torrentKey,
             fileName: file.name,
             bytesWritten,
@@ -317,7 +372,7 @@ export class WebTorrentService {
 
     stream.on('end', () => {
       window.App.closeTorrentStream(streamId, file.name).then(() => {
-        this.emitEvent('torrent-file-saved', {
+        callbacks.onFileSaved?.({
           torrentKey,
           fileName: file.name,
           filePath
@@ -327,15 +382,11 @@ export class WebTorrentService {
 
     stream.on('error', (error: Error) => {
       window.App.closeTorrentStream(streamId, file.name);
-      this.emitFileError(torrentKey, file.name, error.message);
-    });
-  }
-
-  private emitFileError(torrentKey: string, fileName: string, error: string): void {
-    this.emitEvent('torrent-file-save-error', {
-      torrentKey,
-      fileName,
-      error
+      callbacks.onFileSaveError?.({
+        torrentKey,
+        fileName: file.name,
+        error: error.message
+      });
     });
   }
 
@@ -348,7 +399,15 @@ export class WebTorrentService {
       return;
     }
     
-    this.emitEvent('torrent-progress', progress);
+    // Notifier tous les callbacks abonnés au progrès global
+    for (const callback of this.progressCallbacks) {
+      try {
+        callback(progress);
+      } catch (error) {
+        console.error('Erreur dans callback de progrès:', error);
+      }
+    }
+    
     this.prevProgress = progress;
   }
 
@@ -396,10 +455,14 @@ export class WebTorrentService {
   // === NOUVELLES MÉTHODES POUR LA PERSISTANCE ===
 
   // 🌱 Méthode publique pour créer un magnet link et sauvegarder pour seeding
-  public async saveFileForSeeding(filePath: string, fileName?: string): Promise<{ magnetURI: string; error?: string }> {
+  public async saveFileForSeeding(
+    filePath: string, 
+    fileName?: string, 
+    callbacks: SeedingCallbacks = {}
+  ): Promise<{ magnetURI: string; error?: string }> {
     try {
       // Créer un torrent à partir du fichier téléchargé
-      const result = await this.createMagnetLinkFromFile(filePath, fileName);
+      const result = await this.createMagnetLinkFromFile(filePath, fileName, callbacks);
       
       if (!result.error) {
         const seedingInfo = {
@@ -419,9 +482,11 @@ export class WebTorrentService {
       return { magnetURI: '', error: result.error };
     } catch (error: any) {
       console.error('❌ Erreur sauvegarde pour seeding:', error);
+      const errorMessage = error?.message || 'Erreur lors de la sauvegarde pour seeding';
+      callbacks.onError?.({ error: errorMessage });
       return { 
         magnetURI: '', 
-        error: error?.message || 'Erreur lors de la sauvegarde pour seeding' 
+        error: errorMessage
       };
     }
   }
@@ -507,6 +572,7 @@ export class WebTorrentService {
       this.progressUpdateInterval = null;
     }
     
+    this.progressCallbacks.clear();
     this.client.destroy();
   }
 }

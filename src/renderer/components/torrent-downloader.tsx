@@ -6,7 +6,6 @@ import {
   ExclamationTriangleIcon,
   PlayIcon,
 } from '@heroicons/react/24/outline'
-import webTorrentService from 'renderer/services/webtorrent.service'
 import { useTorrentEvents, type TorrentDownloadState } from 'renderer/hooks'
 
 export const TorrentDownloader: React.FC = () => {
@@ -24,7 +23,8 @@ export const TorrentDownloader: React.FC = () => {
   })
 
   // Utiliser le hook personnalisé
-  useTorrentEvents(setDownloadState)
+  const { startTorrentDownload, stopTorrentDownload } =
+    useTorrentEvents(setDownloadState)
 
   const handleStartDownload = async () => {
     if (!magnetLink.trim()) {
@@ -35,21 +35,9 @@ export const TorrentDownloader: React.FC = () => {
       return
     }
 
-    setDownloadState({
-      isDownloading: true,
-      progress: 0,
-      speed: '0 KB/s',
-      eta: '--',
-      error: null,
-      torrentName: null,
-      downloaded: '0 MB',
-      peers: 0,
-      savedFiles: [],
-    })
-
     try {
       const torrentKey = `torrent-${Date.now()}`
-      webTorrentService.startTorrenting(torrentKey, magnetLink)
+      startTorrentDownload(torrentKey, magnetLink)
     } catch (error: any) {
       setDownloadState(prev => ({
         ...prev,
