@@ -176,7 +176,6 @@ export class WebTorrentService {
             announceList: [
               ['wss://tracker.btorrent.xyz'],
               ['wss://tracker.openwebtorrent.com'],
-              ['wss://tracker.fastcast.nz']
             ]
           };
 
