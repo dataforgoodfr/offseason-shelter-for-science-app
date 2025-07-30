@@ -1,8 +1,8 @@
-// src/renderer/services/WebTorrentService.ts
-// Ajout pour corriger l'erreur de type sur l'import WebTorrent browser
+// src/renderer/services/webtorrent.service.ts
 // @ts-ignore
 import WebTorrent from 'webtorrent/dist/webtorrent.min.js';
 
+// === TYPES ET INTERFACES ===
 export interface TorrentProgress {
   torrents: Array<{
     torrentKey: string;
@@ -38,93 +38,46 @@ export interface TorrentInfo {
   bytesReceived: number;
 }
 
-export interface CreateTorrentOptions {
-  files: Array<{ path: string }>;
-  name?: string;
-  comment?: string;
-  announceList?: string[][];
-  private?: boolean;
-}
-
-export interface ServerInfo {
-  torrentKey: string;
-  localURL: string;
-  networkURL: string;
-  networkAddress: string;
-}
-
 export class WebTorrentService {
   private client!: WebTorrent.Instance;
-  private server: any = null;
   private progressUpdateInterval: NodeJS.Timeout | null = null;
   private prevProgress: TorrentProgress | null = null;
 
-  constructor() { 
+  constructor() {
     this.initializeClient();
-    this.init();
+    this.startProgressUpdates();
+    this.setupErrorHandling();
   }
 
-  private generatePeerId(): Uint8Array {
-    // WebTorrent requires peerId to be exactly 20 bytes
-    // Using Azureus-style encoding: '-SD' + version + '-' + random bytes
-    const VERSION = '1.0.0';
-    const VERSION_STR = VERSION
-      .replace(/\d*\./g, (v: string) => `0${Number.parseInt(v.slice(0, -1)) % 100}`.slice(-2))
-      .slice(0, 4);
-    
-    // Create a 20-byte peer ID
+  // === INITIALISATION ===
+  private initializeClient(): void {
+    // Génération simple d'un peer ID de 20 bytes
     const peerId = new Uint8Array(20);
-    
-    // Fill with random bytes
     window.crypto.getRandomValues(peerId);
     
-    // Set the prefix for our client (first 8 bytes)
-    const prefix = `-SD${VERSION_STR}-`;
-    const encoder = new TextEncoder();
-    const prefixBytes = encoder.encode(prefix);
-    
-    // Copy prefix to the beginning
-    for (let i = 0; i < Math.min(prefixBytes.length, 8); i++) {
-      peerId[i] = prefixBytes[i];
-    }
-    
-    return peerId;
-  };
+    // Préfixe simple pour identifier notre client
+    const prefix = new TextEncoder().encode('-SCIENCE-');
+    peerId.set(prefix.slice(0, 9));
 
-  private initializeClient(): void {
-    // Generate a proper 20-byte peer ID
-    const PEER_ID = this.generatePeerId();
-
-    this.client = new WebTorrent({ 
-      peerId: PEER_ID,
+    this.client = new WebTorrent({
+      peerId,
       maxConns: 25,
       dht: true,
       tracker: true,
       webSeeds: true,
-      utp: false, // Désactiver uTP qui peut causer des problèmes
+      utp: false, // Désactiver uTP pour éviter les problèmes
     });
-    
-    // Make client globally accessible for debugging
-    //(window as any).client = this.client;
-  }
 
-  private init(): void {
-    this.listenToClientEvents();
-    this.startProgressUpdates();
-
-    // Handle uncaught errors
-    window.addEventListener('error', (e) => {
-      console.error('WebTorrent uncaught error:', e.error);
-    }, true);
-  }
-
-  private listenToClientEvents(): void {
     this.client.on('error', (err: string | Error) => {
       const message = typeof err === 'string' ? err : err.message;
       console.error('WebTorrent error:', message);
-      // Utiliser une méthode alternative pour envoyer les erreurs
-      console.error('WebTorrent error to main process:', message);
     });
+  }
+
+  private setupErrorHandling(): void {
+    window.addEventListener('error', (e) => {
+      console.error('WebTorrent uncaught error:', e.error);
+    }, true);
   }
 
   private startProgressUpdates(): void {
@@ -133,143 +86,269 @@ export class WebTorrentService {
     }, 1000);
   }
 
-
-  // Starts a given TorrentID, which can be an infohash, magnet URI, etc.
+  // === TÉLÉCHARGEMENT DE TORRENTS ===
   public startTorrenting(
     torrentKey: string,
     torrentID: string,
-    downloadPath?: string,
-    fileModtimes?: { [path: string]: number },
     selections?: boolean[]
   ): void {
-    console.log('starting torrent %s: %s', torrentKey, torrentID);
-
-    // Ne pas utiliser de downloadPath ou fileModtimes dans le navigateur
-    // car ces options utilisent des APIs Node.js non disponibles
-    const options: any = {};
-    // Supprimer les options qui causent des erreurs dans le navigateur
-    // if (downloadPath) options.path = downloadPath;
-    // if (fileModtimes) options.fileModtimes = fileModtimes;
+    console.log('Starting torrent:', torrentKey, torrentID);
 
     try {
-      const torrent = this.client.add(torrentID, options);
+      const torrent = this.client.add(torrentID, {});
       (torrent as any).key = torrentKey;
 
-      // Listen for ready event, progress notifications, etc
-      this.addTorrentEvents(torrent);
-
-      // Only download the files the user wants, not necessarily all files
+      this.setupTorrentEvents(torrent);
       torrent.once('ready', () => this.selectFiles(torrent, selections));
     } catch (error) {
       console.error('Erreur lors du démarrage du torrent:', error);
-      
-      // Émettre un événement d'erreur
-      window.dispatchEvent(new CustomEvent('torrent-error', { 
-        detail: { 
-          torrentKey, 
-          error: error instanceof Error ? error.message : 'Erreur inconnue' 
-        } 
-      }));
+      this.emitEvent('torrent-error', {
+        torrentKey,
+        error: error instanceof Error ? error.message : 'Erreur inconnue'
+      });
     }
   }
 
   public stopTorrenting(infoHash: string): void {
-    console.log('--- STOP TORRENTING: ', infoHash);
+    console.log('Stopping torrent:', infoHash);
     const torrent = this.client.get(infoHash);
     if (torrent) torrent.destroy();
   }
 
-  // Create a new torrent, start seeding
-  public createTorrent(torrentKey: string, options: CreateTorrentOptions): void {
-    console.log('creating torrent', torrentKey, options);
-    const paths = options.files.map((f) => f.path);
-    const torrent = this.client.seed(paths, options);
-    (torrent as any).key = torrentKey;
-    this.addTorrentEvents(torrent);
+  // === CRÉATION ET SEEDING DE TORRENTS ===
+  public async createMagnetLinkFromFile(filePath: string, fileName?: string): Promise<{ magnetURI: string; torrent: WebTorrent.Torrent; error?: string }> {
+    return new Promise((resolve) => {
+      try {
+        window.App.getFileForTorrent(filePath).then((fileResult: any) => {
+          if (!fileResult.success) {
+            resolve({ magnetURI: '', torrent: null as any, error: fileResult.error });
+            return;
+          }
+
+          const { fileData, originalFileName } = fileResult;
+          const torrentName = fileName || originalFileName;
+          const file = new File([fileData], torrentName);
+          
+          const options = {
+            name: torrentName,
+            comment: 'Created by Science Data Sharing App',
+            createdBy: 'Science Data Sharing App v1.0.0',
+            private: false,
+            announceList: [
+              ['wss://tracker.btorrent.xyz'],
+              ['wss://tracker.openwebtorrent.com'],
+              ['wss://tracker.fastcast.nz']
+            ]
+          };
+
+          const torrent = this.client.seed([file], options);
+          const torrentKey = `seeded-${Date.now()}`;
+          (torrent as any).key = torrentKey;
+
+          this.setupTorrentEvents(torrent);
+
+          torrent.on('ready', () => {
+            console.log('Torrent créé et seeding démarré:', torrent.name);
+            
+            this.emitEvent('torrent-seeding-started', {
+              torrentKey,
+              magnetURI: torrent.magnetURI,
+              name: torrent.name,
+              filePath
+            });
+
+            resolve({ magnetURI: torrent.magnetURI, torrent });
+          });
+
+          torrent.on('error', (error: any) => {
+            console.error('Erreur lors de la création du torrent:', error);
+            resolve({
+              magnetURI: '',
+              torrent: null as any,
+              error: error.message || 'Erreur lors de la création du torrent'
+            });
+          });
+
+        }).catch((error: any) => {
+          resolve({
+            magnetURI: '',
+            torrent: null as any,
+            error: error.message || 'Erreur lors de la lecture du fichier'
+          });
+        });
+
+      } catch (error: any) {
+        console.error('Erreur lors de la création du torrent:', error);
+        resolve({
+          magnetURI: '',
+          torrent: null as any,
+          error: error.message || 'Erreur lors de la création du torrent'
+        });
+      }
+    });
   }
 
-  private addTorrentEvents(torrent: WebTorrent.Torrent): void {
+  public stopSeeding(torrentKey: string): void {
+    const torrent = this.client.torrents.find((t: any) => (t as any).key === torrentKey);
+    if (torrent) {
+      console.log('Arrêt du seeding pour:', torrent.name);
+      torrent.destroy();
+      
+      this.emitEvent('torrent-seeding-stopped', {
+        torrentKey,
+        name: torrent.name
+      });
+    }
+  }
+
+  public getSeedingTorrents(): Array<{ key: string; name: string; magnetURI: string; uploaded: number; ratio: number }> {
+    return this.client.torrents
+      .filter((torrent: any) => torrent.ready)
+      .map((torrent: any) => ({
+        key: (torrent as any).key || 'unknown',
+        name: torrent.name,
+        magnetURI: torrent.magnetURI,
+        uploaded: torrent.uploaded,
+        ratio: torrent.ratio
+      }));
+  }
+
+  // === GESTION DES ÉVÉNEMENTS ===
+  private setupTorrentEvents(torrent: WebTorrent.Torrent): void {
     const torrentKey = (torrent as any).key;
 
-    // Événements essentiels seulement
     torrent.on('error', (err: string | Error) => {
       const message = typeof err === 'string' ? err : err.message;
-      console.error('WebTorrent error:', message);
-      window.dispatchEvent(new CustomEvent('torrent-error', { 
-        detail: { torrentKey, error: message } 
-      }));
+      console.error('Torrent error:', message);
+      this.emitEvent('torrent-error', { torrentKey, error: message });
     });
 
     torrent.on('ready', () => {
       const info = this.getTorrentInfo(torrent);
-      console.log('WebTorrent ready:', torrentKey, info.name);
+      console.log('Torrent ready:', torrentKey, info.name);
       
-      window.dispatchEvent(new CustomEvent('torrent-ready', { 
-        detail: { torrentKey, info } 
-      }));
-      
-      // Commencer le streaming des fichiers
+      this.emitEvent('torrent-ready', { torrentKey, info });
       this.prepareFilesForDownload(torrent, torrentKey);
-      
       this.updateTorrentProgress();
     });
 
     torrent.on('done', () => {
       const info = this.getTorrentInfo(torrent);
-      console.log('WebTorrent done:', torrentKey, info.name);
+      console.log('Torrent done:', torrentKey, info.name);
       
-      window.dispatchEvent(new CustomEvent('torrent-done', { 
-        detail: { torrentKey, info } 
-      }));
-      
+      this.emitEvent('torrent-done', { torrentKey, info });
       this.updateTorrentProgress();
     });
   }
 
-  // Produces a JSON saveable summary of a torrent
-  private getTorrentInfo(torrent: WebTorrent.Torrent): TorrentInfo {
-    return {
-      infoHash: torrent.infoHash,
-      magnetURI: torrent.magnetURI,
-      name: torrent.name,
-      path: torrent.path,
-      files: torrent.files.map(this.getTorrentFileInfo),
-      bytesReceived: torrent.received
-    };
+  private emitEvent(eventName: string, detail: any): void {
+    window.dispatchEvent(new CustomEvent(eventName, { detail }));
   }
 
-  // Produces a JSON saveable summary of a file in a torrent
-  private getTorrentFileInfo(file: WebTorrent.TorrentFile): { name: string; length: number; path: string } {
-    return {
-      name: file.name,
-      length: file.length,
-      path: file.path
-    };
+  // === STREAMING DE FICHIERS ===
+  private prepareFilesForDownload(torrent: WebTorrent.Torrent, torrentKey: string): void {
+    console.log(`Streaming ${torrent.files.length} fichier(s)`);
+    
+    for (const file of torrent.files) {
+      this.createFileStream(file, torrentKey);
+    }
   }
 
+  private createFileStream(file: any, torrentKey: string): void {
+    console.log(`Streaming: ${file.name}`);
+    
+    window.App.createTorrentStream(file.name).then((result: any) => {
+      if (!result.success) {
+        this.emitFileError(torrentKey, file.name, result.error);
+        return;
+      }
 
+      const { streamId, filePath } = result;
+      this.streamFileToSafer(file, torrentKey, streamId, filePath);
+    }).catch(error => {
+      this.emitFileError(torrentKey, file.name, error.message);
+    });
+  }
+
+  private streamFileToSafer(file: any, torrentKey: string, streamId: string, filePath: string): void {
+    this.emitEvent('torrent-file-streaming', {
+      torrentKey,
+      fileName: file.name,
+      filePath,
+      streamId
+    });
+
+    let bytesWritten = 0;
+    const stream = file.createReadStream();
+    
+    stream.on('data', (chunk: Uint8Array) => {
+      const arrayBuffer = new ArrayBuffer(chunk.length);
+      const view = new Uint8Array(arrayBuffer);
+      view.set(chunk);
+      
+      window.App.writeTorrentChunk(streamId, arrayBuffer, bytesWritten).then((result: any) => {
+        if (result.success) {
+          bytesWritten += chunk.length;
+          const progress = Math.round((bytesWritten / file.length) * 100);
+          
+          this.emitEvent('torrent-file-progress', {
+            torrentKey,
+            fileName: file.name,
+            bytesWritten,
+            totalSize: file.length,
+            progress
+          });
+        } else {
+          stream.destroy();
+          window.App.closeTorrentStream(streamId, file.name);
+        }
+      }).catch(() => {
+        stream.destroy();
+        window.App.closeTorrentStream(streamId, file.name);
+      });
+    });
+
+    stream.on('end', () => {
+      window.App.closeTorrentStream(streamId, file.name).then(() => {
+        this.emitEvent('torrent-file-saved', {
+          torrentKey,
+          fileName: file.name,
+          filePath
+        });
+      });
+    });
+
+    stream.on('error', (error: Error) => {
+      window.App.closeTorrentStream(streamId, file.name);
+      this.emitFileError(torrentKey, file.name, error.message);
+    });
+  }
+
+  private emitFileError(torrentKey: string, fileName: string, error: string): void {
+    this.emitEvent('torrent-file-save-error', {
+      torrentKey,
+      fileName,
+      error
+    });
+  }
+
+  // === SUIVI DU PROGRÈS ===
   private updateTorrentProgress(): void {
     const progress = this.getTorrentProgress();
     
-    // Don't send heavy object if it hasn't changed
+    // Ne pas envoyer l'objet si rien n'a changé
     if (this.prevProgress && JSON.stringify(progress) === JSON.stringify(this.prevProgress)) {
       return;
     }
     
-    // Émettre un événement pour l'interface
-    window.dispatchEvent(new CustomEvent('torrent-progress', { detail: progress }));
-    
-    // Utiliser une méthode alternative pour envoyer le progrès
-    console.log('Torrent progress:', progress);
+    this.emitEvent('torrent-progress', progress);
     this.prevProgress = progress;
   }
 
   private getTorrentProgress(): TorrentProgress {
-    // First, track overall progress
     const progress = this.client.progress;
     const hasActiveTorrents = this.client.torrents.some((torrent: any) => torrent.progress !== 1);
 
-    // Track progress for every file in each torrent
     const torrentProg = this.client.torrents.map((torrent: any) => {
       const fileProg = torrent.files?.map((file: any) => {
         const fileAny = file as any;
@@ -307,47 +386,8 @@ export class WebTorrentService {
     };
   }
 
-  public startServer(infoHash: string): void {
-    const torrent = this.client.get(infoHash);
-    if (!torrent) return;
-
-    if (torrent.ready) {
-      this.startServerFromReadyTorrent(torrent);
-    } else {
-      torrent.once('ready', () => this.startServerFromReadyTorrent(torrent));
-    }
-  }
-
-  private startServerFromReadyTorrent(torrent: WebTorrent.Torrent): void {
-    if (this.server) return;
-
-    // Start the streaming torrent-to-http server
-    this.server = torrent.createServer();
-    this.server.listen(0, () => {
-      const port = this.server.address().port;
-      const urlSuffix = `:${port}`;
-      const networkAddr = this.getNetworkAddress();
-      
-      const info: ServerInfo = {
-        torrentKey: (torrent as any).key,
-        localURL: `http://localhost${urlSuffix}`,
-        networkURL: `http://${networkAddr}${urlSuffix}`,
-        networkAddress: networkAddr
-      };
-
-      console.log('WebTorrent server running:', info);
-      console.log(`WebTorrent server ${torrent.infoHash} running:`, info);
-    });
-  }
-
-  public stopServer(): void {
-    if (!this.server) return;
-    this.server.destroy();
-    this.server = null;
-  }
-
+  // === UTILITAIRES ===
   private selectFiles(torrentOrInfoHash: WebTorrent.Torrent | string, selections?: boolean[]): void {
-    // Get the torrent object
     let torrent: WebTorrent.Torrent;
     if (typeof torrentOrInfoHash === 'string') {
       const foundTorrent = this.client.get(torrentOrInfoHash);
@@ -359,274 +399,49 @@ export class WebTorrentService {
       torrent = torrentOrInfoHash;
     }
 
-    // Selections not specified?
-    // Load all files. We still need to replace the default whole-torrent
-    // selection with individual selections for each file, so we can
-    // select/deselect files later on
-    let selectionsToUse = selections;
-    if (!selectionsToUse) {
-      selectionsToUse = new Array(torrent.files.length).fill(true);
-    }
+    const selectionsToUse = selections || new Array(torrent.files.length).fill(true);
 
-    // Selections specified incorrectly?
     if (selectionsToUse.length !== torrent.files.length) {
       throw new Error(`got ${selectionsToUse.length} file selections, but the torrent contains ${torrent.files.length} files`);
     }
 
-    // Remove default selection (whole torrent)
+    // Supprimer la sélection par défaut (torrent entier)
     torrent.deselect(0, torrent.pieces.length - 1, 0);
 
-    // Add selections (individual files)
+    // Ajouter les sélections individuelles
     selectionsToUse.forEach((selection, i) => {
       const file = torrent.files[i];
       if (selection) {
         file.select();
       } else {
-        console.log(`deselecting file ${i} of torrent ${torrent.name}`);
         file.deselect();
       }
     });
   }
 
-  // Gets a WebTorrent handle by torrentKey
-  private getTorrent(torrentKey: string): any {
-    const ret = this.client.torrents.find((x: any) => (x as any).key === torrentKey);
-    if (!ret) {
-      throw new Error(`Torrent with key ${torrentKey} not found`);
-    }
-    return ret;
+  private getTorrentInfo(torrent: WebTorrent.Torrent): TorrentInfo {
+    return {
+      infoHash: torrent.infoHash,
+      magnetURI: torrent.magnetURI,
+      name: torrent.name,
+      path: torrent.path,
+      files: torrent.files.map((file: WebTorrent.TorrentFile) => ({
+        name: file.name,
+        length: file.length,
+        path: file.path
+      })),
+      bytesReceived: torrent.received
+    };
   }
 
-  // Get network address (simplified version for renderer)
-  private getNetworkAddress(): string {
-    // In renderer process, we might need to get this from main process
-    // For now, return localhost as fallback
-    return 'localhost';
-  }
-
-  // Public methods for external access
-  public getClient(): WebTorrent.Instance {
-    return this.client;
-  }
-
-  public getAllTorrents(): WebTorrent.Torrent[] {
-    return this.client.torrents;
-  }
-
-  // Cleanup method
+  // === CLEANUP ===
   public destroy(): void {
     if (this.progressUpdateInterval) {
       clearInterval(this.progressUpdateInterval);
       this.progressUpdateInterval = null;
     }
     
-    if (this.server) {
-      this.server.destroy();
-      this.server = null;
-    }
-    
     this.client.destroy();
-  }
-
-  // Nouvelle méthode pour créer un magnet link à partir d'un fichier local
-  public async createMagnetLinkFromFile(filePath: string, fileName?: string): Promise<{ magnetURI: string; torrent: WebTorrent.Torrent; error?: string }> {
-    return new Promise((resolve) => {
-      try {
-        // Demander le fichier au processus principal
-        window.App.getFileForTorrent(filePath).then((fileResult: any) => {
-          if (!fileResult.success) {
-            resolve({ magnetURI: '', torrent: null as any, error: fileResult.error });
-            return;
-          }
-
-          const { fileData, originalFileName } = fileResult;
-          const torrentName = fileName || originalFileName;
-          
-          // Créer un File object à partir des données
-          const file = new File([fileData], torrentName);
-          
-          // Options pour la création du torrent
-          const options = {
-            name: torrentName,
-            comment: 'Created by Science Data Sharing App',
-            createdBy: 'Science Data Sharing App v1.0.0',
-            private: false,
-            announceList: [
-              ['wss://tracker.btorrent.xyz'],
-              ['wss://tracker.openwebtorrent.com'], 
-              ['wss://tracker.fastcast.nz']
-            ]
-          };
-
-          // Créer le torrent et commencer le seeding
-          const torrent = this.client.seed([file], options);
-          const torrentKey = `seeded-${Date.now()}`;
-          (torrent as any).key = torrentKey;
-
-          // Ajouter les événements pour ce torrent
-          this.addTorrentEvents(torrent);
-
-          torrent.on('ready', () => {
-            console.log('Torrent créé et seeding démarré:', {
-              magnetURI: torrent.magnetURI,
-              name: torrent.name,
-              infoHash: torrent.infoHash
-            });
-
-            // Émettre un événement pour notifier l'interface
-            window.dispatchEvent(new CustomEvent('torrent-seeding-started', {
-              detail: {
-                torrentKey,
-                magnetURI: torrent.magnetURI,
-                name: torrent.name,
-                filePath
-              }
-            }));
-
-            resolve({ 
-              magnetURI: torrent.magnetURI, 
-              torrent 
-            });
-          });
-
-          torrent.on('error', (error: any) => {
-            console.error('Erreur lors de la création du torrent:', error);
-            resolve({ 
-              magnetURI: '', 
-              torrent: null as any, 
-              error: error.message || 'Erreur lors de la création du torrent' 
-            });
-          });
-
-        }).catch((error: any) => {
-          resolve({ 
-            magnetURI: '', 
-            torrent: null as any, 
-            error: error.message || 'Erreur lors de la lecture du fichier' 
-          });
-        });
-
-      } catch (error: any) {
-        console.error('Erreur lors de la création du torrent:', error);
-        resolve({ 
-          magnetURI: '', 
-          torrent: null as any, 
-          error: error.message || 'Erreur lors de la création du torrent' 
-        });
-      }
-    });
-  }
-
-  // Méthode pour arrêter le seeding d'un torrent
-  public stopSeeding(torrentKey: string): void {
-    const torrent = this.client.torrents.find((t: any) => (t as any).key === torrentKey);
-    if (torrent) {
-      console.log('Arrêt du seeding pour:', torrent.name);
-      torrent.destroy();
-      
-      // Émettre un événement
-      window.dispatchEvent(new CustomEvent('torrent-seeding-stopped', {
-        detail: { torrentKey, name: torrent.name }
-      }));
-    }
-  }
-
-  // Méthode pour obtenir la liste des torrents en cours de seeding
-  public getSeedingTorrents(): Array<{ key: string; name: string; magnetURI: string; uploaded: number; ratio: number }> {
-    return this.client.torrents
-      .filter((torrent: any) => torrent.ready)
-      .map((torrent: any) => ({
-        key: (torrent as any).key || 'unknown',
-        name: torrent.name,
-        magnetURI: torrent.magnetURI,
-        uploaded: torrent.uploaded,
-        ratio: torrent.ratio
-      }));
-  }
-
-  // Méthode simplifiée pour le streaming de fichier
-  private createFileStream(file: any, torrentKey: string, fileIndex: number): void {
-    console.log(`Streaming: ${file.name}`);
-    
-    window.App.createTorrentStream(file.name).then((result: any) => {
-      if (!result.success) {
-        this.emitFileError(torrentKey, file.name, result.error);
-        return;
-      }
-
-      const { streamId, filePath } = result;
-      this.streamFileToSafer(file, torrentKey, streamId, filePath);
-    }).catch(error => {
-      this.emitFileError(torrentKey, file.name, error.message);
-    });
-  }
-
-  private streamFileToSafer(file: any, torrentKey: string, streamId: string, filePath: string): void {
-    // Notifier le début du streaming
-    window.dispatchEvent(new CustomEvent('torrent-file-streaming', { 
-      detail: { torrentKey, fileName: file.name, filePath, streamId } 
-    }));
-
-    let bytesWritten = 0;
-    const stream = file.createReadStream();
-    
-    stream.on('data', (chunk: Uint8Array) => {
-      const arrayBuffer = new ArrayBuffer(chunk.length);
-      const view = new Uint8Array(arrayBuffer);
-      view.set(chunk);
-      
-      window.App.writeTorrentChunk(streamId, arrayBuffer, bytesWritten).then((result: any) => {
-        if (result.success) {
-          bytesWritten += chunk.length;
-          const progress = Math.round((bytesWritten / file.length) * 100);
-          
-          window.dispatchEvent(new CustomEvent('torrent-file-progress', { 
-            detail: { 
-              torrentKey, 
-              fileName: file.name, 
-              bytesWritten, 
-              totalSize: file.length, 
-              progress 
-            } 
-          }));
-        } else {
-          stream.destroy();
-          window.App.closeTorrentStream(streamId, file.name);
-        }
-      }).catch(() => {
-        stream.destroy();
-        window.App.closeTorrentStream(streamId, file.name);
-      });
-    });
-
-    stream.on('end', () => {
-      window.App.closeTorrentStream(streamId, file.name).then(() => {
-        window.dispatchEvent(new CustomEvent('torrent-file-saved', { 
-          detail: { torrentKey, fileName: file.name, filePath } 
-        }));
-      });
-    });
-
-    stream.on('error', (error: Error) => {
-      window.App.closeTorrentStream(streamId, file.name);
-      this.emitFileError(torrentKey, file.name, error.message);
-    });
-  }
-
-  private emitFileError(torrentKey: string, fileName: string, error: string): void {
-    window.dispatchEvent(new CustomEvent('torrent-file-save-error', { 
-      detail: { torrentKey, fileName, error } 
-    }));
-  }
-
-
-  // Prépare les fichiers pour le streaming
-  private prepareFilesForDownload(torrent: WebTorrent.Torrent, torrentKey: string): void {
-    console.log(`Streaming ${torrent.files.length} fichier(s)`);
-    
-    torrent.files.forEach((file: any, index: number) => {
-      this.createFileStream(file, torrentKey, index);
-    });
   }
 }
 
