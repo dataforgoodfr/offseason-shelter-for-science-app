@@ -46,6 +46,7 @@ export class WebTorrentService {
   constructor() {
     this.initializeClient();
     this.startProgressUpdates();
+    this.resumeSeedingOnStartup();
   }
 
   // === INITIALISATION ===
@@ -179,10 +180,25 @@ export class WebTorrentService {
     });
   }
 
-  public stopSeeding(torrentKey: string): void {
+  public async stopSeeding(torrentKey: string): Promise<void> {
     const torrent = this.client.torrents.find((t: any) => (t as any).key === torrentKey);
     if (torrent) {
-      console.log('Arrêt du seeding pour:', torrent.name);
+      console.log('🛑 Arrêt du seeding pour:', torrent.name);
+      
+      // Essayer de trouver le filePath correspondant dans le store pour le nettoyer
+      try {
+        const seedingData = await window.App.getSeedingData();
+        for (const [filePath, info] of Object.entries(seedingData)) {
+          if ((info as any).torrentKey === torrentKey || (info as any).name === torrent.name) {
+            await window.App.removeSeedingInfo(filePath);
+            console.log('🗑️ Nettoyage du store pour:', filePath);
+            break;
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erreur nettoyage store:', error);
+      }
+      
       torrent.destroy();
       
       this.emitEvent('torrent-seeding-stopped', {
@@ -376,6 +392,97 @@ export class WebTorrentService {
       hasActiveTorrents
     };
   }
+
+  // === NOUVELLES MÉTHODES POUR LA PERSISTANCE ===
+
+  // 🌱 Méthode publique pour créer un magnet link et sauvegarder pour seeding
+  public async saveFileForSeeding(filePath: string, fileName?: string): Promise<{ magnetURI: string; error?: string }> {
+    try {
+      // Créer un torrent à partir du fichier téléchargé
+      const result = await this.createMagnetLinkFromFile(filePath, fileName);
+      
+      if (!result.error) {
+        const seedingInfo = {
+          magnetURI: result.magnetURI,
+          name: result.torrent.name,
+          torrentKey: `auto-seed-${Date.now()}`,
+          filePath,
+          lastSeeded: Date.now()
+        };
+
+        await window.App.saveSeedingInfo(filePath, seedingInfo);
+        console.log('✅ Fichier sauvegardé pour seeding automatique:', result.torrent.name);
+        
+        return { magnetURI: result.magnetURI };
+      }
+      
+      return { magnetURI: '', error: result.error };
+    } catch (error: any) {
+      console.error('❌ Erreur sauvegarde pour seeding:', error);
+      return { 
+        magnetURI: '', 
+        error: error?.message || 'Erreur lors de la sauvegarde pour seeding' 
+      };
+    }
+  }
+
+  // 🔄 Reprendre le seeding au démarrage de l'application
+  private async resumeSeedingOnStartup(): Promise<void> {
+    // Attendre un peu que le client soit complètement initialisé
+    setTimeout(async () => {
+      try {
+        const seedingData = await window.App.getSeedingData();
+        const filePaths = Object.keys(seedingData);
+        
+        if (filePaths.length === 0) {
+          console.log('🌱 Aucun fichier à seeder au démarrage');
+          return;
+        }
+
+        console.log('🔄 Reprise du seeding pour', filePaths.length, 'fichiers...');
+
+        for (const filePath of filePaths) {
+          const info = seedingData[filePath];
+          await this.resumeSeedingForFile(filePath, info);
+          
+          // Petit délai entre chaque torrent pour éviter de surcharger
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        console.log('✅ Reprise du seeding terminée');
+      } catch (error) {
+        console.error('❌ Erreur lors de la reprise du seeding:', error);
+      }
+    }, 2000); // Délai de 2 secondes après l'initialisation
+  }
+
+  // 🔄 Reprendre le seeding pour un fichier spécifique
+  private async resumeSeedingForFile(filePath: string, seedingInfo: any): Promise<void> {
+    try {
+      // Vérifier que le fichier existe encore
+      const fileResult = await window.App.getFileForTorrent(filePath);
+      
+      if (!fileResult.success) {
+        console.log('🗑️ Fichier supprimé, nettoyage:', filePath);
+        await window.App.removeSeedingInfo(filePath);
+        return;
+      }
+
+      console.log('🌱 Reprise du seeding pour:', seedingInfo.name);
+      
+      // Recréer le torrent avec le même nom pour essayer de garder le même hash
+      const result = await this.createMagnetLinkFromFile(filePath, seedingInfo.name);
+      
+      if (result.error) {
+        console.error('❌ Erreur reprise seeding:', result.error);
+      } else {
+        console.log('✅ Seeding repris:', seedingInfo.name);
+      }
+    } catch (error) {
+      console.error('❌ Erreur reprise seeding pour', filePath, ':', error);
+    }
+  }
+  
 
   // === UTILITAIRES ===
   private getTorrentInfo(torrent: WebTorrent.Torrent): TorrentInfo {

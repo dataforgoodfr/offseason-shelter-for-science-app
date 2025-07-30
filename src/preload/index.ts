@@ -21,16 +21,25 @@ const API = {
   removeDownloadProgressListener: () => {
     ipcRenderer.removeAllListeners('download-progress')
   },
-  // Nouvelles méthodes pour le streaming
+  // Méthodes pour le streaming des fichiers torrent au main process
   createTorrentStream: (fileName: string, downloadPath?: string) => 
     ipcRenderer.invoke('create-torrent-stream', fileName, downloadPath),
   writeTorrentChunk: (streamId: string, chunkData: ArrayBuffer, offset: number) => 
     ipcRenderer.invoke('write-torrent-chunk', streamId, chunkData, offset),
   closeTorrentStream: (streamId: string, fileName: string) => 
     ipcRenderer.invoke('close-torrent-stream', streamId, fileName),
-  // Nouvelle méthode pour lire un fichier pour création de torrent
+  // Méthode pour lire un fichier pour création de torrent
   getFileForTorrent: (filePath: string) => 
-    ipcRenderer.invoke('get-file-for-torrent', filePath)
+    ipcRenderer.invoke('get-file-for-torrent', filePath),
+  // Méthodes pour la persistance du seeding
+  saveSeedingInfo: (filePath: string, info: any) => 
+    ipcRenderer.invoke('save-seeding-info', filePath, info),
+  getSeedingData: () => 
+    ipcRenderer.invoke('get-seeding-data'),
+  removeSeedingInfo: (filePath: string) => 
+    ipcRenderer.invoke('remove-seeding-info', filePath),
+  scanDirectoryForSeeding: (directoryPath: string) =>
+    ipcRenderer.invoke('scan-directory-for-seeding', directoryPath)
 }
 
 contextBridge.exposeInMainWorld('App', API)

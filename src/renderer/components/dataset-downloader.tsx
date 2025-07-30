@@ -69,15 +69,60 @@ export const DatasetDownloader: React.FC = () => {
     })
 
     try {
+      // Phase 1: Téléchargement
       const result = await window.App.downloadDataset('climate-data')
 
-      if (result.success) {
+      if (result.success && result.filePath) {
+        console.log(
+          '📥 Téléchargement terminé, démarrage du seeding automatique pour:',
+          result.filePath
+        )
+
+        // Phase 2: Transition vers le seeding
         setDownloadState(prev => ({
           ...prev,
           isDownloading: false,
           progress: 100,
-          filePath: result.filePath || null,
+          filePath: result.filePath,
+          isCreatingMagnet: true,
+          magnetError: null,
         }))
+
+        // Phase 3: Seeding automatique
+        try {
+          const seedingResult = await webTorrentService.saveFileForSeeding(
+            result.filePath
+          )
+
+          if (seedingResult.error) {
+            setDownloadState(prev => ({
+              ...prev,
+              isCreatingMagnet: false,
+              magnetError:
+                seedingResult.error || 'Erreur lors du seeding automatique',
+            }))
+            console.error('❌ Erreur seeding automatique:', seedingResult.error)
+          } else {
+            setDownloadState(prev => ({
+              ...prev,
+              isCreatingMagnet: false,
+              magnetLink: seedingResult.magnetURI,
+              isSeeding: true,
+            }))
+            console.log(
+              '✅ Seeding automatique démarré avec succès:',
+              seedingResult.magnetURI
+            )
+          }
+        } catch (seedingError: any) {
+          setDownloadState(prev => ({
+            ...prev,
+            isCreatingMagnet: false,
+            magnetError:
+              seedingError?.message || 'Erreur lors du seeding automatique',
+          }))
+          console.error('❌ Erreur seeding automatique:', seedingError)
+        }
       } else {
         setDownloadState(prev => ({
           ...prev,
@@ -90,46 +135,6 @@ export const DatasetDownloader: React.FC = () => {
         ...prev,
         isDownloading: false,
         error: error?.message || error || 'Download failed',
-      }))
-    }
-  }
-
-  // Nouvelle méthode pour créer un magnet link et commencer le seeding
-  const handleCreateMagnetLink = async () => {
-    if (!downloadState.filePath) return
-
-    setDownloadState(prev => ({
-      ...prev,
-      isCreatingMagnet: true,
-      magnetError: null,
-    }))
-
-    try {
-      const result = await webTorrentService.createMagnetLinkFromFile(
-        downloadState.filePath
-      )
-
-      if (result.error) {
-        setDownloadState(prev => ({
-          ...prev,
-          isCreatingMagnet: false,
-          magnetError:
-            result.error || 'Erreur lors de la création du magnet link',
-        }))
-      } else {
-        setDownloadState(prev => ({
-          ...prev,
-          isCreatingMagnet: false,
-          magnetLink: result.magnetURI,
-          isSeeding: true,
-        }))
-      }
-    } catch (error: any) {
-      setDownloadState(prev => ({
-        ...prev,
-        isCreatingMagnet: false,
-        magnetError:
-          error?.message || 'Erreur lors de la création du magnet link',
       }))
     }
   }
@@ -238,16 +243,6 @@ export const DatasetDownloader: React.FC = () => {
 
             {/* Seeding Section */}
             <div className="mt-3 pt-3 border-t border-green-500/20">
-              {!downloadState.magnetLink && !downloadState.isCreatingMagnet && (
-                <button
-                  onClick={handleCreateMagnetLink}
-                  className="w-full text-sm font-medium py-2 px-3 rounded-lg bg-green-600/20 hover:bg-green-600/30 text-green-200 transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
-                  <ShareIcon className="w-4 h-4" />
-                  <span>Créer un magnet link pour partager</span>
-                </button>
-              )}
-
               {downloadState.isCreatingMagnet && (
                 <div className="text-center">
                   <div className="text-sm text-green-200">
