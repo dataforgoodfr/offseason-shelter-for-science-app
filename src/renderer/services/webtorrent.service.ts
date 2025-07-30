@@ -136,6 +136,18 @@ export class WebTorrentService {
     if (torrent) torrent.destroy();
   }
 
+  // Nouvelle méthode pour supprimer un torrent par son nom
+  public removeTorrentByName(torrentName: string): void {
+    console.log('Removing torrent by name:', torrentName);
+    const torrent = this.client.torrents.find((t: any) => t.name === torrentName);
+    if (torrent) {
+      console.log('Found and destroying torrent:', torrent.name);
+      torrent.destroy();
+    } else {
+      console.log('No torrent found with name:', torrentName);
+    }
+  }
+
   // === CRÉATION ET SEEDING DE TORRENTS ===
   public async createMagnetLinkFromFile(
     filePath: string, 

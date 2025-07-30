@@ -70,7 +70,41 @@ export const DatasetDownloader: React.FC<{ datasetName: string }> = ({
     })
 
     try {
-      // Phase 1: Téléchargement
+      // Phase 0: Nettoyer l'ancienne entrée de seeding et supprimer le torrent existant
+      const downloadPath = await window.App.getDownloadPath()
+      if (downloadPath) {
+        const expectedFilePath = `${downloadPath}/${datasetName}.csv`
+        const expectedFileName = `${datasetName}.csv`
+
+        try {
+          // Récupérer les données de seeding existantes
+          const seedingData = await window.App.getSeedingData()
+          const existingSeedingInfo = seedingData[expectedFilePath]
+
+          if (existingSeedingInfo) {
+            console.log(
+              '🛑 Arrêt du seeding existant pour:',
+              existingSeedingInfo.name
+            )
+            // Arrêter le seeding existant
+            await webTorrentService.stopSeeding(existingSeedingInfo.torrentKey)
+            // Supprimer complètement le torrent du client WebTorrent
+            console.log('🗑️ Suppression du torrent du client:', expectedFileName)
+            webTorrentService.removeTorrentByName(expectedFileName)
+
+            // Supprimer l'entrée du store
+            await window.App.removeSeedingInfo(expectedFilePath)
+            console.log(
+              '🗑️ Ancienne entrée de seeding supprimée pour:',
+              expectedFilePath
+            )
+          }
+        } catch (error) {
+          console.log('ℹ️ Aucune ancienne entrée de seeding à supprimer')
+        }
+      }
+
+      // Phase 1: Téléchargement (force le retéléchargement même si le fichier existe)
       const result = await window.App.downloadDataset(datasetName)
 
       if (result.success && result.filePath) {
@@ -89,10 +123,30 @@ export const DatasetDownloader: React.FC<{ datasetName: string }> = ({
           magnetError: null,
         }))
 
-        // Phase 3: Seeding automatique
+        // Phase 3: Seeding automatique avec callbacks
         try {
           const seedingResult = await webTorrentService.saveFileForSeeding(
-            result.filePath
+            result.filePath,
+            `${datasetName}.csv`,
+            {
+              onSeedingStarted: ({ magnetURI, name }) => {
+                console.log('✅ Seeding démarré:', name)
+                setDownloadState(prev => ({
+                  ...prev,
+                  isCreatingMagnet: false,
+                  magnetLink: magnetURI,
+                  isSeeding: true,
+                }))
+              },
+              onError: ({ error }) => {
+                console.error('❌ Erreur seeding:', error)
+                setDownloadState(prev => ({
+                  ...prev,
+                  isCreatingMagnet: false,
+                  magnetError: error,
+                }))
+              },
+            }
           )
 
           if (seedingResult.error) {
@@ -151,26 +205,6 @@ export const DatasetDownloader: React.FC<{ datasetName: string }> = ({
       }
     }
   }
-
-  // Écouter l'événement de début de seeding
-  useEffect(() => {
-    const handleSeedingStarted = (event: CustomEvent) => {
-      const { magnetURI, name, filePath } = event.detail
-      console.log('Seeding démarré pour:', name)
-    }
-
-    window.addEventListener(
-      'torrent-seeding-started',
-      handleSeedingStarted as EventListener
-    )
-
-    return () => {
-      window.removeEventListener(
-        'torrent-seeding-started',
-        handleSeedingStarted as EventListener
-      )
-    }
-  }, [])
 
   return (
     <div>
