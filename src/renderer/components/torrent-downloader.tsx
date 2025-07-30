@@ -168,7 +168,10 @@ export const TorrentDownloader: React.FC = () => {
 
           <div className="space-y-2 max-h-40 overflow-y-auto">
             {downloadState.savedFiles.map((file, index) => (
-              <div key={index} className="bg-white/5 rounded p-2">
+              <div
+                key={`${file.name}-${index}`}
+                className="bg-white/5 rounded p-2"
+              >
                 <div className="flex items-center justify-between mb-1">
                   <div className="text-sm font-medium text-white truncate flex-1">
                     {file.name}
