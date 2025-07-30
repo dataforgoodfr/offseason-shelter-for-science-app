@@ -74,16 +74,16 @@ export function MainScreen() {
         <DatasetDownloader datasetName="ocean-temperature-data" />
       </div>
 
+      {/* Seeding Monitor */}
+      <div className="mb-6">
+        <SeedingMonitor />
+      </div>
+
       <div className="border-b border-white/20 mb-6"></div>
 
       {/* Torrent Downloader */}
       <div className="mb-6">
         <TorrentDownloader />
-      </div>
-
-      {/* Seeding Monitor */}
-      <div className="mb-6">
-        <SeedingMonitor />
       </div>
     </div>
   )

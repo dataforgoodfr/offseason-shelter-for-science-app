@@ -15,7 +15,36 @@ interface SeedingInfo {
 export const useSeedingEvents = () => {
   const [seedingTorrents, setSeedingTorrents] = useState<SeedingInfo[]>([]);
 
+  // Fonction pour charger les données de seeding depuis le main process
+  const loadSeedingData = async () => {
+    try {
+      const seedingData = await window.App.getSeedingData();
+      console.log('🔄 Chargement des données de seeding:', Object.keys(seedingData).length, 'fichiers');
+      
+      // Convertir les données du format main process vers le format du hook
+      const formattedSeedingTorrents: SeedingInfo[] = Object.entries(seedingData).map(([filePath, info]: [string, any]) => ({
+        key: filePath, // Utiliser le filePath comme clé unique
+        name: info.name || filePath.split('/').pop() || 'Fichier inconnu',
+        magnetURI: info.magnetURI || '',
+        filePath: filePath,
+        uploaded: info.uploaded || 0,
+        ratio: info.ratio || 0
+      }));
+
+      console.log('📋 Torrents formatés:', formattedSeedingTorrents.length);
+      setSeedingTorrents(formattedSeedingTorrents);
+    } catch (error) {
+      console.error('Erreur lors du chargement des données de seeding:', error);
+    }
+  };
+
   useEffect(() => {
+    // Charger les données initiales
+    loadSeedingData();
+
+    // Polling pour les mises à jour automatiques (toutes les 2 secondes)
+    const intervalId = setInterval(loadSeedingData, 2000);
+
     const handleSeedingStarted = (event: CustomEvent) => {
       const { torrentKey, magnetURI, name, filePath } = event.detail;
       
@@ -40,12 +69,13 @@ export const useSeedingEvents = () => {
       );
     };
 
-    // Écouter les événements
+    // Écouter les événements pour les mises à jour en temps réel
     window.addEventListener('torrent-seeding-started', handleSeedingStarted as EventListener);
     window.addEventListener('torrent-seeding-stopped', handleSeedingStopped as EventListener);
 
     // Cleanup
     return () => {
+      clearInterval(intervalId);
       window.removeEventListener('torrent-seeding-started', handleSeedingStarted as EventListener);
       window.removeEventListener('torrent-seeding-stopped', handleSeedingStopped as EventListener);
     };
@@ -53,7 +83,8 @@ export const useSeedingEvents = () => {
 
   return {
     seedingTorrents,
-    setSeedingTorrents
+    setSeedingTorrents,
+    refreshSeedingData: loadSeedingData // Exposer la fonction de rafraîchissement
   };
 };
 
