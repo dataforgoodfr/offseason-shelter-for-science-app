@@ -39,7 +39,23 @@ const API = {
   removeSeedingInfo: (filePath: string) => 
     ipcRenderer.invoke('remove-seeding-info', filePath),
   scanDirectoryForSeeding: (directoryPath: string) =>
-    ipcRenderer.invoke('scan-directory-for-seeding', directoryPath)
+    ipcRenderer.invoke('scan-directory-for-seeding', directoryPath),
+  
+  // Obtenir l'espace disque disponible (libre) pour un chemin donné
+  getFreeSpace: (path: string) => ipcRenderer.invoke('get-free-space', path),
+  
+  // Détecter la bande passante réseau actuelle
+  detectBandwidth: () => ipcRenderer.invoke('detect-bandwidth'),
+  
+  // Sauvegarder les préférences d'allocation
+  setStorageAllocation: (percentage: number) => 
+    ipcRenderer.invoke('set-storage-allocation', percentage),
+  setBandwidthAllocation: (percentage: number) => 
+    ipcRenderer.invoke('set-bandwidth-allocation', percentage),
+  
+  // Récupérer les préférences sauvegardées
+  getStorageAllocation: () => ipcRenderer.invoke('get-storage-allocation'),
+  getBandwidthAllocation: () => ipcRenderer.invoke('get-bandwidth-allocation')
 }
 
 contextBridge.exposeInMainWorld('App', API)
