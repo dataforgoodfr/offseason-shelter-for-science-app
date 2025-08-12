@@ -22,8 +22,6 @@ export function BandwidthMonitor({ onBandwidthAllocationChange }: BandwidthMonit
         }
       } catch (error) {
         console.warn('Impossible de détecter la bande passante:', error)
-        // setDownloadSpeed(0.1) // 100 Mbps
-        // setUploadSpeed(0.05)  // 50 Mbps
       } finally {
         setIsDetecting(false)
       }
@@ -59,7 +57,6 @@ export function BandwidthMonitor({ onBandwidthAllocationChange }: BandwidthMonit
           </div>
         ) : (
           <>
-            {/* Affichage des vitesses */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <div className="text-lg">↓</div>
@@ -71,7 +68,6 @@ export function BandwidthMonitor({ onBandwidthAllocationChange }: BandwidthMonit
               </div>
             </div>
             
-            {/* Boutons de pourcentage */}
             <div className="flex space-x-2">
               {[10, 25, 50, 75, 100].map((percentage) => (
                 <button
