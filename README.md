@@ -2,7 +2,7 @@
 
 ## À propos du projet
 
-Shelter for Science App est un projet de TeamForChange qui vise à créer un client décentralisé permettant aux bénévoles de partager des données environnementales via le protocole torrent. L'application transforme les ordinateurs individuels en nœuds de stockage autonomes dans un réseau peer-to-peer.
+Shelter for Science App est un projet de Data for Good qui vise à créer un client décentralisé permettant aux bénévoles de partager des données environnementales via le protocole torrent. L'application transforme les ordinateurs individuels en nœuds de stockage autonomes dans un réseau peer-to-peer.
 
 ## Architecture du repository
 
@@ -19,6 +19,29 @@ Ce repository se compose de deux parties principales :
 - **Fonction** : Serveur de test qui remplace le dispatcher principal pour le développement local
 
 ## Installation et démarrage
+
+### node with nvm (required)
+
+source: https://nodejs.org/en/download
+
+```bash
+# Download and install nvm:
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+
+source /home/<USER NAME>/.bashrc
+
+nvm install --lts
+```
+
+### pnpm (required)
+
+source: https://pnpm.io/installation
+
+```bash
+curl -fsSL https://get.pnpm.io/install.sh | sh -
+
+source /home/<USER NAME>/.bashrc
+ ```
 
 ### Application Electron
 
@@ -50,5 +73,3 @@ pnpm run start:dev
 
 Le fichier .env contient les variables d'environnement nécessaires, notamment :
 - Port de l'API dispatcher (par défaut : 3000)
-
-

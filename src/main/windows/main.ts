@@ -9,17 +9,17 @@ export async function MainWindow() {
   const window = createWindow({
     id: 'main',
     title: displayName,
-    width: 480,
-    height: 750,
+    width: 220,
+    height: 309,
     show: false,
     center: true,
     movable: true,
     resizable: false,
     alwaysOnTop: true,
     autoHideMenuBar: true,
-
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
+      scrollBounce: false,
     },
   })
 
