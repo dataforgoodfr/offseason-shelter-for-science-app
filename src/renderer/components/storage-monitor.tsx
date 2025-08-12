@@ -6,7 +6,7 @@ interface StorageMonitorProps {
 }
 
 export function StorageMonitor({ selectedPath, onStorageAllocationChange }: StorageMonitorProps) {
-  const [totalStorage, setTotalStorage] = useState<number>(0)
+  const [usedPercentage, setUsedPercentage] = useState<number>(0)
   const [freeStorage, setFreeStorage] = useState<number>(0)
   const [selectedPercentage, setSelectedPercentage] = useState<number>(50)
 
@@ -16,16 +16,9 @@ export function StorageMonitor({ selectedPath, onStorageAllocationChange }: Stor
       window.App.getFreeSpace(selectedPath).then((freeBytes: number) => {
         if (freeBytes) {
           setFreeStorage(freeBytes)
-          // On estime l'espace total comme étant au moins l'espace libre + un peu plus
-          // ou on peut faire un appel séparé si besoin
-          setTotalStorage(freeBytes * 0.2) // Estimation
         }
       }).catch(() => {
-
         console.error('Failed to get free space for path:', selectedPath)
-        // Valeurs par défaut si l'API n'est pas disponible
-        // setTotalStorage(1000000000000) // 1TB
-        // setFreeStorage(500000000000)   // 500GB
       })
     }
   }, [selectedPath])
@@ -40,12 +33,12 @@ export function StorageMonitor({ selectedPath, onStorageAllocationChange }: Stor
 
   const handlePercentageSelect = (percentage: number) => {
     setSelectedPercentage(percentage)
+    setUsedPercentage(percentage)
     onStorageAllocationChange?.(percentage)
   }
 
   if (!selectedPath) return null
 
-  const usedPercentage = ((totalStorage - freeStorage) / totalStorage) * 100
 
   return (
     <div className="mb-6">
@@ -58,7 +51,6 @@ export function StorageMonitor({ selectedPath, onStorageAllocationChange }: Stor
           {formatStorage(freeStorage)} of free space available
         </div>
         
-        {/* Barre de progression de l'espace utilisé */}
         <div className="relative w-full h-2 bg-white/20 rounded-full mb-4">
           <div 
             className="absolute h-full bg-white/60 rounded-full"
@@ -66,7 +58,6 @@ export function StorageMonitor({ selectedPath, onStorageAllocationChange }: Stor
           ></div>
         </div>
         
-        {/* Boutons de pourcentage */}
         <div className="flex space-x-2">
           {[25, 50, 75, 100].map((percentage) => (
             <button

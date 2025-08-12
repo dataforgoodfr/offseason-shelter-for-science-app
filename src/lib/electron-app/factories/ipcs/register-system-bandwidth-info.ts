@@ -26,12 +26,16 @@ export function registerSystemInfo() {
         let command: string
         let args: string[]
 
+        // Commandes spécifiques par OS
         if (process.platform === 'win32') {
-          command = 'dir'
-          args = [folderPath, '/-c']
+          command = 'wmic'
+          args = ['logicaldisk', 'where', `"DeviceID='${path.parse(folderPath).root.replace('\\', '').replace(':', '')}':"`, 'get', 'FreeSpace', '/format:csv']
+        } else if (process.platform === 'darwin') {
+          command = 'df'
+          args = ['-k', folderPath] // -k pour avoir en KB sur Mac
         } else {
           command = 'df'
-          args = ['-h', folderPath]
+          args = ['-B1', folderPath] // -B1 pour avoir en bytes sur Linux
         }
 
         const child = spawn(command, args, { shell: true })
@@ -44,42 +48,47 @@ export function registerSystemInfo() {
         child.on('close', (code: any) => {
           console.log('Sortie commande espace disque:', output)
           
-          if (process.platform === 'win32') {
-            const freeMatch = output.match(/(\d+)\s+bytes\s+free/i)
-            if (freeMatch) {
-              const freeBytes = parseInt(freeMatch[1], 10)
-              console.log(`Espace libre Windows: ${Math.round(freeBytes / (1024**3))} GB`)
-              resolve(freeBytes)
-              return
-            }
-          } else {
-            const lines = output.split('\n')
-            for (const line of lines) {
-              if (line.includes('/') && !line.startsWith('Filesystem')) {
-                const parts = line.split(/\s+/)
-                if (parts.length >= 4) {
-                  const availStr = parts[3] || parts[2]
-                  let multiplier = 1024
-                  
-                  if (availStr.includes('G')) {
-                    multiplier = 1024 * 1024 * 1024
-                  } else if (availStr.includes('M')) {
-                    multiplier = 1024 * 1024
-                  } else if (availStr.includes('T')) {
-                    multiplier = 1024 * 1024 * 1024 * 1024
-                  }
-                  
-                  const sizeNum = parseFloat(availStr.replace(/[^\d.]/g, ''))
-                  const freeBytes = Math.round(sizeNum * multiplier)
-                  
-                  if (freeBytes > 0) {
-                    console.log(`Espace libre Unix: ${Math.round(freeBytes / (1024**3))} GB`)
-                    resolve(freeBytes)
-                    return
+          try {
+            if (process.platform === 'win32') {
+              // Parse WMIC output
+              const lines = output.split('\n').filter(line => line.trim())
+              for (const line of lines) {
+                const match = line.match(/(\d+)/)
+                if (match && parseInt(match[1]) > 1000000) { // Éviter les headers
+                  const freeBytes = parseInt(match[1])
+                  console.log(`Espace libre Windows: ${Math.round(freeBytes / (1024**3))} GB`)
+                  resolve(freeBytes)
+                  return
+                }
+              }
+            } else {
+              // Parse df output (Linux/Mac)
+              const lines = output.split('\n')
+              for (const line of lines) {
+                if (line.includes('/') && !line.startsWith('Filesystem')) {
+                  const parts = line.trim().split(/\s+/)
+                  if (parts.length >= 4) {
+                    let freeBytes: number
+                    
+                    if (process.platform === 'darwin') {
+                      // Mac : df -k retourne en KB
+                      freeBytes = parseInt(parts[3]) * 1024
+                    } else {
+                      // Linux : df -B1 retourne en bytes
+                      freeBytes = parseInt(parts[3])
+                    }
+                    
+                    if (freeBytes > 0) {
+                      console.log(`Espace libre ${process.platform}: ${Math.round(freeBytes / (1024**3))} GB`)
+                      resolve(freeBytes)
+                      return
+                    }
                   }
                 }
               }
             }
+          } catch (parseError) {
+            console.error('Erreur parsing:', parseError)
           }
           
           console.log('Parsing échoué, utilisation valeur par défaut')
@@ -94,7 +103,7 @@ export function registerSystemInfo() {
         setTimeout(() => {
           child.kill()
           resolve(50 * 1024 * 1024 * 1024)
-        }, 5000)
+        }, 10000)
       })
 
     } catch (error) {
@@ -114,10 +123,13 @@ export function registerSystemInfo() {
       let downloadedBytes = 0
       
       const options = {
-        hostname: 'httpbin.org',
-        path: '/bytes/102400',
+        hostname: 'speed.cloudflare.com',
+        path: '/__down?bytes=1048576', // 1MB
         method: 'GET',
-        timeout: 5000
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'ShelterApp-BandwidthTest/1.0'
+        }
       }
 
       const req = https.request(options, (res: any) => {
@@ -127,14 +139,15 @@ export function registerSystemInfo() {
         
         res.on('end', () => {
           const duration = Math.max((Date.now() - startTime) / 1000, 0.1)
-          const speedMbps = (downloadedBytes * 8) / (duration * 1000000)
+          const speedBps = downloadedBytes / duration
+          const speedMbps = (speedBps * 8) / 1000000
           const speedGbps = speedMbps / 1000
           
           console.log(`Test vitesse: ${downloadedBytes} bytes en ${duration}s = ${speedMbps.toFixed(1)} Mbps`)
           
           const result = {
-            download: Math.max(speedGbps, 0.005),
-            upload: Math.max(speedGbps * 0.3, 0.001)
+            download: Math.max(speedGbps, 0.001), 
+            upload: Math.max(speedGbps * 0.1, 0.0005) 
           }
           
           resolve(result)
@@ -144,8 +157,8 @@ export function registerSystemInfo() {
       req.on('error', (err: any) => {
         console.log('Erreur test réseau:', err.message)
         resolve({
-          download: 0.05,
-          upload: 0.015
+          download: 0.0, 
+          upload: 0.00   
         })
       })
 
@@ -153,19 +166,12 @@ export function registerSystemInfo() {
         console.log('Timeout test réseau')
         req.destroy()
         resolve({
-          download: 0.05,
-          upload: 0.015
+          download: 0.1,
+          upload: 0.01
         })
       })
 
       req.end()
-      
-      setTimeout(() => {
-        resolve({
-          download: 0.05,
-          upload: 0.015
-        })
-      }, 6000)
     })
   })
 
