@@ -3,11 +3,28 @@ import { EllipsisHorizontalIcon, FolderIcon } from '@heroicons/react/24/outline'
 import { DatasetDownloader } from 'renderer/components/dataset-downloader'
 import { TorrentDownloader } from 'renderer/components/torrent-downloader'
 import { SeedingMonitor } from 'renderer/components/seeding-monitor'
+import { StorageMonitor } from 'renderer/components/storage-monitor'
+import { BandwidthMonitor } from 'renderer/components/bandwidth-monitor'
+
 
 // The "App" comes from the context bridge in preload/index.ts
 const { App } = window
 
 export function MainScreen() {
+
+  const [storageAllocation, setStorageAllocation] = useState<number>(50)
+  const [bandwidthAllocation, setBandwidthAllocation] = useState<number>(10)
+
+  const handleStorageAllocationChange = (percentage: number) => {
+    setStorageAllocation(percentage)
+    window.App?.setStorageAllocation?.(percentage)
+  }
+
+  const handleBandwidthAllocationChange = (percentage: number) => {
+    setBandwidthAllocation(percentage)
+    window.App?.setBandwidthAllocation?.(percentage)
+  }
+
   useEffect(() => {
     // check the console on dev tools
     App.sayHelloFromBridge()
@@ -62,6 +79,20 @@ export function MainScreen() {
       </div>
 
       <div className="border-b border-white/20 mb-6"></div>
+
+      {selectedPath && (
+        <>
+          <StorageMonitor 
+            selectedPath={selectedPath}
+            onStorageAllocationChange={handleStorageAllocationChange}
+          />
+          
+          <BandwidthMonitor 
+            onBandwidthAllocationChange={handleBandwidthAllocationChange}
+          />
+        </>
+      )}
+
 
       {/* Dataset Downloader */}
       <h2 className="text-sm font-semibold mb-3 uppercase tracking-wide">
