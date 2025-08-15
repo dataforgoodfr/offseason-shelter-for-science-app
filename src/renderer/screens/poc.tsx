@@ -5,9 +5,12 @@ import {
   PlayIcon,
 } from "@heroicons/react/24/outline";
 
-import LoadingBars from "renderer/components/LoadingBars";
+// import LoadingBars from "renderer/components/LoadingBars";
 import WelcomeComponent from "renderer/components/WelcomeComponent";
 import ShelterInitialization from "renderer/components/initializing";
+
+// import { DummyDownloader } from "renderer/components/dummy-downloader";
+
 import AboutPopup from "renderer/components/about-popup";
 
 // Header
@@ -44,6 +47,16 @@ export function MainScreen() {
   useEffect(() => {
     // check the console on dev tools
     App.sayHelloFromBridge();
+  }, []);
+
+  useEffect(() => {
+    window.App.getDownloadedFiles().then((downloadedFiles: any) => {
+      if (downloadedFiles.length > 0) {
+        console.log("Downloaded files this far:", downloadedFiles);
+      } else {
+        console.log("No downloaded files yet");
+      }
+    });
   }, []);
 
   function shortenPathForDisplay(path: string) {
@@ -115,6 +128,10 @@ export function MainScreen() {
             setIsHosting(false);
             setIsInitializing(false);
             setIsAboutPopupOpen(false);
+
+            if (selectedPath) {
+              window.App.cleanupDownloadedFiles(selectedPath);
+            }
           }}
           onContactUs={() => {
             setIsAboutPopupOpen(false);
@@ -131,7 +148,7 @@ export function MainScreen() {
         {!isInitializing ? (
           <>
             <WelcomeComponent />
-              {/* <LoadingBars /> */}
+            {/* <LoadingBars /> */}
 
             {/* Path */}
             <div 
@@ -175,7 +192,12 @@ export function MainScreen() {
 
             {/* Start hosting button */}
             <div 
-              className="w-[188px] h-12 flex items-center justify-between opacity-100 rounded-[40px] px-5 py-4 bg-black shadow-lg relative"
+              className="group w-[188px] h-12 flex items-center
+                justify-between opacity-100 rounded-[40px] px-5 py-4
+                bg-black shadow-lg relative
+                hover:bg-gradient-to-t from-[#C4FFEA] to-[#FBDF9C]
+                transition-all duration-300
+                cursor-pointer"
               style={{
                 boxShadow: '0px 6px 8px 0px #00000040'
               }}
@@ -184,9 +206,6 @@ export function MainScreen() {
               {selectedPath && (
               <div 
                 className="absolute inset-0 rounded-[40px] p-1"
-                style={{
-                  background: 'linear-gradient(89.51deg, #C4FFEA 26.3%, #FBDF9C 62.27%)'
-                }}
               >
                 <div className="w-full h-full bg-black rounded-[36px]"></div>
               </div>
@@ -201,9 +220,10 @@ export function MainScreen() {
                   className="w-[16px] h-[16px] aspect-square"
                 />
               </div>
-
-
             </div>
+
+            {/* Dummy downloader 
+            <DummyDownloader downloadPath={selectedPath || ""} />*/}
          </>
         ) : (
           <ShelterInitialization />

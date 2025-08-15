@@ -28,9 +28,11 @@ const API = {
     ipcRenderer.invoke('write-torrent-chunk', streamId, chunkData, offset),
   closeTorrentStream: (streamId: string, fileName: string) => 
     ipcRenderer.invoke('close-torrent-stream', streamId, fileName),
+  
   // Méthode pour lire un fichier pour création de torrent
   getFileForTorrent: (filePath: string) => 
     ipcRenderer.invoke('get-file-for-torrent', filePath),
+
   // Méthodes pour la persistance du seeding
   saveSeedingInfo: (filePath: string, info: any) => 
     ipcRenderer.invoke('save-seeding-info', filePath, info),
@@ -39,7 +41,20 @@ const API = {
   removeSeedingInfo: (filePath: string) => 
     ipcRenderer.invoke('remove-seeding-info', filePath),
   scanDirectoryForSeeding: (directoryPath: string) =>
-    ipcRenderer.invoke('scan-directory-for-seeding', directoryPath)
+    ipcRenderer.invoke('scan-directory-for-seeding', directoryPath),
+
+  // Downloaded files persistence
+  getDownloadedFiles: () => 
+    ipcRenderer.invoke('get-downloaded-files'),
+  addDownloadedFile: (filePath: string) => 
+    ipcRenderer.invoke('add-downloaded-file', filePath),
+  cleanupDownloadedFiles: (directoryPath: string) =>
+    ipcRenderer.invoke('cleanup-downloaded-files', directoryPath),
+
+  /* Dummy downloader
+  downloadFile: (url: string, downloadPath: string) =>
+    ipcRenderer.invoke('download-file', url, downloadPath),
+  */
 }
 
 contextBridge.exposeInMainWorld('App', API)

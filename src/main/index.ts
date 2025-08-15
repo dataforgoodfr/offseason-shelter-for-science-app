@@ -3,10 +3,14 @@ import { app } from "electron";
 import { makeAppWithSingleInstanceLock } from "lib/electron-app/factories/app/instance";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { MainWindow } from "./windows/main";
+
 import { registerFolderPicker } from "lib/electron-app/factories/ipcs/register-folter-picker";
 import { registerDownloadDataset } from "lib/electron-app/factories/ipcs/register-download-dataset";
 import { registerManageDownloadPath } from "lib/electron-app/factories/ipcs/register-manage-download-path";
 import { registerSeedingManagement } from "lib/electron-app/factories/ipcs/register-seeding-management";
+import { registerDownloadStore } from "lib/electron-app/factories/ipcs/register-download-store";
+
+// import { registerDownloadDummy } from "lib/electron-app/factories/ipcs/register-download-dummy";
 
 makeAppWithSingleInstanceLock(async () => {
   await app.whenReady();
@@ -16,6 +20,9 @@ makeAppWithSingleInstanceLock(async () => {
   registerManageDownloadPath();
   registerDownloadDataset();
   registerSeedingManagement();
+  registerDownloadStore();
+
+  // registerDownloadDummy();
 
   await makeAppSetup(MainWindow);
 });
