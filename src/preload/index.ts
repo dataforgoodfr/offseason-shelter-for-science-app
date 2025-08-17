@@ -39,7 +39,20 @@ const API = {
   removeSeedingInfo: (filePath: string) => 
     ipcRenderer.invoke('remove-seeding-info', filePath),
   scanDirectoryForSeeding: (directoryPath: string) =>
-    ipcRenderer.invoke('scan-directory-for-seeding', directoryPath)
+    ipcRenderer.invoke('scan-directory-for-seeding', directoryPath),
+  
+  // Methods for logging
+  addLog: (logData: any) => ipcRenderer.invoke('logger:add-log', logData),
+  getLogs: () => ipcRenderer.invoke('logger:get-logs'),
+  clearLogs: () => ipcRenderer.invoke('logger:clear-logs'),
+  onLoggerNewLog: (callback: (log: any) => void) => {
+    ipcRenderer.on('logger:new-log', (_, log) => callback(log))
+    return () => ipcRenderer.removeAllListeners('logger:new-log')
+  },
+  onLoggerLogsCleared: (callback: () => void) => {
+    ipcRenderer.on('logger:logs-cleared', () => callback())
+    return () => ipcRenderer.removeAllListeners('logger:logs-cleared')
+  }
 }
 
 contextBridge.exposeInMainWorld('App', API)
