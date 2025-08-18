@@ -4,9 +4,11 @@ import {
   PauseIcon,
   PlayIcon,
 } from "@heroicons/react/24/outline";
+
 import LoadingBars from "renderer/components/LoadingBars";
 import WelcomeComponent from "renderer/components/WelcomeComponent";
 import ShelterInitialization from "renderer/components/initializing";
+import AboutPopup from "renderer/components/about-popup";
 
 // Header
 const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
@@ -19,6 +21,7 @@ const hostingIconUrl = new URL('../assets/icons/hosting.svg', import.meta.url).h
 const { App } = window;
 
 export function MainScreen() {
+  const [isHosting, setIsHosting] = useState(false);
 
   const [isInitializing, setIsInitializing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -26,7 +29,10 @@ export function MainScreen() {
   const [selectedBandwidthPercentage, setSelectedBandwidthPercentage] = useState(10);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [displayedPath, setDisplayedPath] = useState<string | null>(null);
-  const handleSelectFolder = async () => {
+
+  const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
+
+    const handleSelectFolder = async () => {
     const folder = await App.openFolderDialog();
     if (folder) {
       setSelectedPath(folder);
@@ -55,17 +61,40 @@ export function MainScreen() {
 
 
   const handleStartHosting = () => {
+    setIsHosting(true);
     setIsInitializing(true);
   };
 
+  const toggleAboutPopup = () => {
+    setIsAboutPopupOpen(!isAboutPopupOpen);
+  };
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (isAboutPopupOpen && !target.closest('.about-popup') && !target.closest('.gear-icon')) {
+        setIsAboutPopupOpen(false);
+      }
+    };
+
+    if (isAboutPopupOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isAboutPopupOpen]);
+
   return (
-    <div className="flex w-[220px] p-4 flex-col items-start gap-0 box-border rounded-xl border border-white bg-gradient-to-t from-transparent via-transparent to-black/30 backdrop-blur-[17px] overflow-hidden"
+    <div className="s4s-container relative flex w-[220px] p-4 flex-col items-start gap-0 box-border rounded-xl border border-white bg-gradient-to-t from-transparent via-transparent to-black/30 backdrop-blur-[17px] overflow-visible"
         style={{ 
           background: 'linear-gradient(0deg, rgba(0, 0, 0, 0.00) 50%, rgba(0, 0, 0, 0.30) 100%), rgba(69, 126, 101, 0.75)'
         }}
     >
       {/* Header */}
-      <div className="flex justify-between items-center self-stretch">
+      <div className="s4s-header flex justify-between items-center self-stretch">
         <img
               src={s4sLogoUrl}
               alt="S4S Logo"
@@ -74,11 +103,29 @@ export function MainScreen() {
         <img
           src={gearSixUrl}
           alt="Gear Six"
-          className="w-[16px] h-[16px]"
+          className="gear-icon w-[16px] h-[16px] cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={toggleAboutPopup}
         />
       </div>
+
+      {/* About Popup */}
+      {isAboutPopupOpen && (
+        <AboutPopup 
+          onStopHosting={() => {
+            setIsHosting(false);
+            setIsInitializing(false);
+            setIsAboutPopupOpen(false);
+          }}
+          onContactUs={() => {
+            setIsAboutPopupOpen(false);
+          }}
+          onGoToWebsite={() => {
+            setIsAboutPopupOpen(false);
+          }}
+        />
+      )}
       
-      <div className="flex pt-[38px] flex-col items-center gap-0 self-stretch rounded-md">
+      <div className="s4s-content flex pt-[38px] flex-col items-center gap-0 self-stretch rounded-md">
   
 
         {!isInitializing ? (
@@ -88,7 +135,7 @@ export function MainScreen() {
 
             {/* Path */}
             <div 
-              className="flex justify-between items-center self-stretch px-3 py-2 rounded-full border border-white/30 opacity-100 cursor-pointer mb-[16px]"
+              className="s4s-path flex justify-between items-center self-stretch px-3 py-2 rounded-full border border-white/30 opacity-100 cursor-pointer mb-[16px]"
               onClick={handleSelectFolder} 
               title={selectedPath || undefined}
               style={{
