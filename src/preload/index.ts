@@ -43,7 +43,20 @@ const API = {
   scanDirectoryForSeeding: (directoryPath: string) =>
     ipcRenderer.invoke('scan-directory-for-seeding', directoryPath),
 
-  // Downloaded files persistence
+    // Methods for logging
+    addLog: (logData: any) => ipcRenderer.invoke('logger:add-log', logData),
+    getLogs: () => ipcRenderer.invoke('logger:get-logs'),
+    clearLogs: () => ipcRenderer.invoke('logger:clear-logs'),
+    onLoggerNewLog: (callback: (log: any) => void) => {
+      ipcRenderer.on('logger:new-log', (_, log) => callback(log))
+      return () => ipcRenderer.removeAllListeners('logger:new-log')
+    },
+    onLoggerLogsCleared: (callback: () => void) => {
+      ipcRenderer.on('logger:logs-cleared', () => callback())
+      return () => ipcRenderer.removeAllListeners('logger:logs-cleared')
+    },
+
+      // Downloaded files persistence
   getDownloadedFiles: () => 
     ipcRenderer.invoke('get-downloaded-files'),
   addDownloadedFile: (filePath: string) => 
