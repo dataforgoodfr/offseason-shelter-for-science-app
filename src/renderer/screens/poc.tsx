@@ -8,6 +8,7 @@ import {
 // import LoadingBars from "renderer/components/LoadingBars";
 import WelcomeComponent from "renderer/components/WelcomeComponent";
 import ShelterInitialization from "renderer/components/initializing";
+import { logger } from "renderer/lib/logger";
 
 // import { DummyDownloader } from "renderer/components/dummy-downloader";
 
@@ -35,12 +36,22 @@ export function MainScreen() {
 
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
 
-    const handleSelectFolder = async () => {
-    const folder = await App.openFolderDialog();
-    if (folder) {
-      setSelectedPath(folder);
-      setDisplayedPath(shortenPathForDisplay(folder));
-      await window.App.setDownloadPath(folder); // <-- Sauvegarde dans SQLite via IPC !
+  const handleSelectFolder = async () => {
+    try {
+      const folder = await App.openFolderDialog();
+      if (folder) {
+        setSelectedPath(folder);
+        setDisplayedPath(shortenPathForDisplay(folder));
+        await window.App.setDownloadPath(folder); // <-- Sauvegarde dans SQLite via IPC !
+        
+        logger.info('Download folder selected', { 
+          data: {
+            path: folder
+          }
+        });
+      }
+    } catch (error) {
+      logger.error('Error selecting folder', { error: error.message });
     }
   };
 
@@ -76,6 +87,10 @@ export function MainScreen() {
   const handleStartHosting = () => {
     setIsHosting(true);
     setIsInitializing(true);
+    logger.info('Hosting started', { 
+      downloadPath: selectedPath,
+      timestamp: new Date().toISOString()
+    });
   };
 
   const toggleAboutPopup = () => {
