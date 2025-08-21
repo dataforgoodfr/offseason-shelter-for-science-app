@@ -20,6 +20,13 @@ Ce repository se compose de deux parties principales :
 
 ## Installation et démarrage
 
+### Prerequisites
+
+```sh
+nvm use 20
+nvm install -g pnpm
+```
+
 ### Application Electron
 
 ```bash
