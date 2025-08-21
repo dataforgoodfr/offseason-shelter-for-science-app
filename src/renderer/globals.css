@@ -277,12 +277,12 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
 @font-face {
   font-family: "Akzidenz-Grotesk Pro";
-  src: url("../assets/fonts/Akzidenz-Grotesk Pro/Akzidenz Grotesk Pro Regular Regular.otf") format("opentype");
+  src: url("/assets/fonts/Akzidenz-Grotesk Pro/Akzidenz Grotesk Pro Regular Regular.otf") format("opentype");
 }
 
 @font-face {
   font-family: "LT Railway";
-  src: url("../assets/fonts/LT Railway/LTRailway-Regular.otf") format("opentype");
+  src: url("/assets/fonts/LT Railway/LTRailway-Regular.otf") format("opentype");
 }
 
 .text-akz-gro {
