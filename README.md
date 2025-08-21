@@ -30,7 +30,8 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
 
 source /home/<USER NAME>/.bashrc
 
-nvm install --lts
+nvm install 20
+nvm use 20
 ```
 
 ### pnpm (required)
@@ -48,6 +49,11 @@ source /home/<USER NAME>/.bashrc
 ```bash
 # Configuration
 cp .env.example .env  # Port API par défaut : 3000
+
+# Necessary for node-gyp
+./install_prerequisites.sh
+
+source .venv-3.11/bin/activate
 
 # Installation des dépendances
 pnpm install
