@@ -64,10 +64,26 @@ const API = {
   cleanupDownloadedFiles: (directoryPath: string) =>
     ipcRenderer.invoke('cleanup-downloaded-files', directoryPath),
 
-  /* Dummy downloader
+  // Dummy downloader
   downloadFile: (url: string, downloadPath: string) =>
     ipcRenderer.invoke('download-file', url, downloadPath),
-  */
+  
+
+   // Obtenir l'espace disque disponible (libre) pour un chemin donné
+  getFreeSpace: (path: string) => ipcRenderer.invoke('get-free-space', path),
+
+  // Détecter la bande passante réseau actuelle
+  detectBandwidth: () => ipcRenderer.invoke('detect-bandwidth'),
+
+  // Sauvegarder les préférences d'allocation
+  setStorageAllocation: (percentage: number) => 
+    ipcRenderer.invoke('set-storage-allocation', percentage),
+  setBandwidthAllocation: (percentage: number) => 
+    ipcRenderer.invoke('set-bandwidth-allocation', percentage),
+
+  // Récupérer les préférences sauvegardées
+  getStorageAllocation: () => ipcRenderer.invoke('get-storage-allocation'),
+  getBandwidthAllocation: () => ipcRenderer.invoke('get-bandwidth-allocation')
 }
 
 contextBridge.exposeInMainWorld('App', API)
