@@ -1,31 +1,32 @@
 import { useEffect, useState } from "react";
-import { Settings, Check, RotateCw } from "lucide-react";
 import ErrorActions from "./ErrorActions";
+import { InitStatus, InitStep } from "renderer/lib/types";
 
-// Types pour les états d'initialisation
-type InitStatus = 'loading' | 'success' | 'error';
 
-interface InitStep {
-  id: string;
-  label: string;
-  status: InitStatus;
+const processingIconUrl = new URL('../assets/icons/processing.svg', import.meta.url).href;
+const check_markIconUrl = new URL('../assets/icons/check_mark.svg', import.meta.url).href;
+interface StorageProps {
+  selectedPath: string | null;
+  setIsRunning: (isRunning: boolean) => void;
+  setIsInitializing: (isInitializing: boolean) => void;
 }
 
-const ShelterInitialization = () => {
+const ShelterInitialization = ({ selectedPath, setIsRunning, setIsInitializing }: StorageProps) => {
   const [steps, setSteps] = useState<InitStep[]>([
-    { id: 'download', label: 'DOWNLOAD', status: 'loading' },
+    // { id: 'download', label: 'DOWNLOAD', status: 'loading' },
     { id: 'folder', label: 'FOLDER ACCESS', status: 'loading' },
-    { id: 'upload', label: 'UPLOAD', status: 'loading' }
+    // { id: 'upload', label: 'UPLOAD', status: 'loading' }
   ]);
   const [hasError, setHasError] = useState(false);
   const [retryTrigger, setRetryTrigger] = useState(0);
+  const [freeStorage, setFreeStorage] = useState<number>(0)
 
   const handleRetry = () => {
     setHasError(false);
     setSteps([
-      { id: 'download', label: 'DOWNLOAD', status: 'loading' },
+      // { id: 'download', label: 'DOWNLOAD', status: 'loading' },
       { id: 'folder', label: 'FOLDER ACCESS', status: 'loading' },
-      { id: 'upload', label: 'UPLOAD', status: 'loading' }
+      // { id: 'upload', label: 'UPLOAD', status: 'loading' }
     ]);
     setRetryTrigger(prev => prev + 1);
   };
@@ -35,47 +36,80 @@ const ShelterInitialization = () => {
   };
 
 
-// Simulation de l'initialisation progressive
-useEffect(() => {
-  const simulateInit = async () => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setSteps(prev => prev.map(step => 
-        step.id === 'download' ? { ...step, status: 'success' } : step
-      ));
+  useEffect(() => {
+    const checkFolder = async () => {
+      if (selectedPath) {
+        try {
+          setSteps(prev => prev.map(step => 
+            step.id === 'folder' ? { ...step, status: 'loading' } : step
+          ));
+          const freeBytes = await window.App.getFreeSpace(selectedPath);
+          
+          // Attendre 2 secondes pour voir le chargement
+          await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // ce commentaire est pour tester le cas où il ya une erreur lors des simulations, les endpoints seront connectés plus tard
-      // if (true) throw new Error('Simulation error');
+          if (freeBytes) {
+            setFreeStorage(freeBytes);
+            
+            setSteps(prev => prev.map(step => 
+              step.id === 'folder' ? { ...step, status: 'success' } : step
+            ));
 
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setSteps(prev => prev.map(step => 
-        step.id === 'folder' ? { ...step, status: 'success' } : step
-      ));
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setSteps(prev => prev.map(step => 
-        step.id === 'upload' ? { ...step, status: 'success' } : step
-      ));
-    } catch (error) {
-      setHasError(true);
-    }
-  };
+            setIsRunning(true)
+            setIsInitializing(false)
+          }
 
-  simulateInit();
-}, [retryTrigger]);
+        } catch (error) {
+          console.error('Failed to get free space for path:', selectedPath);
+          setHasError(true);
+          
+          setSteps(prev => prev.map(step => 
+            step.id === 'folder' ? { ...step, status: 'error' } : step
+          ));
 
-  const renderIcon = (status: InitStatus) => {
-    switch (status) {
-      case 'loading':
-        return <RotateCw className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" />;
-      case 'success':
-        return <Check className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px]" />;
-      case 'error':
-        return <div className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] rounded-full bg-red-500" />;
-      default:
-        return <RotateCw className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" />;
-    }
-  };
+          setIsRunning(false)
+          setIsInitializing(true)
+        }
+      }
+    };
+
+    checkFolder();
+  }, []);
+
+
+
+const renderIcon = (status: InitStatus) => {
+  switch (status) {
+    case 'loading':
+      return (
+        <img 
+          src={processingIconUrl}
+          className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" 
+          alt="Processing"
+        />
+      );
+    case 'success':
+      return (
+        <img 
+          src={check_markIconUrl} 
+          className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px]" 
+          alt="Success"
+        />
+      );
+    case 'error':
+      return <div className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] rounded-full bg-red-500" />;
+    default:
+      return (
+        <img 
+          src={processingIconUrl}
+          className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" 
+          alt="Processing"
+        />
+      );
+  }
+};
 
   const getStatusText = (step: InitStep) => {
     if (step.status === 'success') {

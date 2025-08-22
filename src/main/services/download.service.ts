@@ -5,6 +5,7 @@ import type { Readable } from "stream";
 import httpService from "./http.service";
 import { getDownloadPath } from "./store.service";
 import { addDownloadedFile } from "./download-store.service";
+import { MEGA_BYTES } from "../../lib/electron-app/utils/units";
 
 export async function downloadDataset(
   datasetId: string,
@@ -89,7 +90,7 @@ export async function downloadDataset(
 }
 
 function formatSpeed(bytesPerSecond: number): string {
-  const mbps = bytesPerSecond / (1024 * 1024);
+  const mbps = bytesPerSecond / (MEGA_BYTES);
   if (mbps >= 1) {
     return `${mbps.toFixed(1)} MB/s`;
   }

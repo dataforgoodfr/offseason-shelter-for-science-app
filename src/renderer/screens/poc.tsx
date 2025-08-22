@@ -13,6 +13,7 @@ import { logger } from "renderer/lib/logger";
 // import { DummyDownloader } from "renderer/components/dummy-downloader";
 
 import AboutPopup from "renderer/components/about-popup";
+import LoadingBars from "renderer/components/LoadingBars";
 
 // Header
 const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
@@ -21,6 +22,8 @@ const gearSixUrl = new URL('../assets/icons/gear_six.svg', import.meta.url).href
 const folderIconUrl = new URL('../assets/icons/path.svg', import.meta.url).href;
 const hostingIconUrl = new URL('../assets/icons/hosting.svg', import.meta.url).href;
 
+
+
 // The "App" comes from the context bridge in preload/index.ts
 const { App } = window;
 
@@ -28,12 +31,13 @@ export function MainScreen() {
   const [isHosting, setIsHosting] = useState(false);
 
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedStoragePercentage, setSelectedStoragePercentage] = useState(50);
   const [selectedBandwidthPercentage, setSelectedBandwidthPercentage] = useState(10);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [displayedPath, setDisplayedPath] = useState<string | null>(null);
-
+  
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
 
   const handleSelectFolder = async () => {
@@ -54,11 +58,17 @@ export function MainScreen() {
       logger.error('Error selecting folder', { error: error.message });
     }
   };
+            
 
   useEffect(() => {
     // check the console on dev tools
     App.sayHelloFromBridge();
   }, []);
+
+    useEffect(() => {
+    // check the console on dev tools
+   console.log("is running passe a ", isRunning)
+  }, [isRunning]);
 
   useEffect(() => {
     window.App.getDownloadedFiles().then((downloadedFiles: any) => {
@@ -143,6 +153,7 @@ export function MainScreen() {
             setIsHosting(false);
             setIsInitializing(false);
             setIsAboutPopupOpen(false);
+            setIsRunning(false);
 
             if (selectedPath) {
               window.App.cleanupDownloadedFiles(selectedPath);
@@ -162,8 +173,14 @@ export function MainScreen() {
 
         {!isInitializing ? (
           <>
-            <WelcomeComponent />
-            {/* <LoadingBars /> */}
+            
+            {!isRunning ? (
+              <WelcomeComponent />
+            ) : (
+                <LoadingBars
+                  downloadPath={selectedPath}
+                />
+            )}
 
             {/* Path */}
             <div 
@@ -206,42 +223,50 @@ export function MainScreen() {
 
 
             {/* Start hosting button */}
-            <div 
-              className="group w-[188px] h-12 flex items-center
-                justify-between opacity-100 rounded-[40px] px-5 py-4
-                bg-black shadow-lg relative
-                hover:bg-gradient-to-t from-[#C4FFEA] to-[#FBDF9C]
-                transition-all duration-300
-                cursor-pointer"
-              style={{
-                boxShadow: '0px 6px 8px 0px #00000040'
-              }}
-              onClick={selectedPath ? handleStartHosting : undefined}
-            >
-              {selectedPath && (
+            {!isRunning && (
               <div 
-                className="absolute inset-0 rounded-[40px] p-1"
+                className="group w-[188px] h-12 flex items-center
+                  justify-between opacity-100 rounded-[40px] px-5 py-4
+                  bg-black shadow-lg relative
+                  hover:bg-gradient-to-t from-[#C4FFEA] to-[#FBDF9C]
+                  transition-all duration-300
+                  cursor-pointer"
+                style={{
+                  boxShadow: '0px 6px 8px 0px #00000040'
+                }}
+                onClick={selectedPath ? handleStartHosting : undefined}
               >
-                <div className="w-full h-full bg-black rounded-[36px]"></div>
+                {selectedPath && (
+                <div 
+                  className="absolute inset-0 rounded-[40px] p-1"
+                >
+                  <div className="w-full h-full bg-black rounded-[36px]"></div>
+                </div>
+                )}
+                <div className="relative z-10 flex items-center justify-between w-full">
+                  <span className="text-akz-gro text-sm text-white">
+                    {selectedPath ? "Start hosting" : "Select path first"}
+                  </span>
+                  <img
+                    src={hostingIconUrl}
+                    alt="Download"
+                    className="w-[16px] h-[16px] aspect-square"
+                  />
+                </div>
               </div>
-              )}
-              <div className="relative z-10 flex items-center justify-between w-full">
-                <span className="text-akz-gro text-sm text-white">
-                  {selectedPath ? "Start hosting" : "Select path first"}
-                </span>
-                <img
-                  src={hostingIconUrl}
-                  alt="Download"
-                  className="w-[16px] h-[16px] aspect-square"
-                />
-              </div>
-            </div>
+            )}
+            
 
             {/* Dummy downloader 
             <DummyDownloader downloadPath={selectedPath || ""} />*/}
-         </>
+          </>
         ) : (
-          <ShelterInitialization />
+          <ShelterInitialization 
+            selectedPath={selectedPath}
+            setIsRunning={setIsRunning}
+            setIsInitializing={setIsInitializing}
+          />
+          
         )}
 
         

@@ -11,8 +11,9 @@ import { registerManageDownloadPath } from "lib/electron-app/factories/ipcs/regi
 import { registerSeedingManagement } from "lib/electron-app/factories/ipcs/register-seeding-management";
 import { loggerService } from "./services/logger";
 import { registerDownloadStore } from "lib/electron-app/factories/ipcs/register-download-store";
+import { registerSystemInfo } from "lib/electron-app/factories/ipcs/register-system-bandwidth-info";
 
-// import { registerDownloadDummy } from "lib/electron-app/factories/ipcs/register-download-dummy";
+import { registerDownloadDummy } from "lib/electron-app/factories/ipcs/register-download-dummy";
 
 makeAppWithSingleInstanceLock(async () => {
   await app.whenReady();
@@ -23,8 +24,8 @@ makeAppWithSingleInstanceLock(async () => {
   registerDownloadDataset();
   registerSeedingManagement();
   registerDownloadStore();
-
-  // registerDownloadDummy();
+  registerSystemInfo(); 
+  registerDownloadDummy();
 
   // Create and configure the windows
   const mainWindow = await makeAppSetup(MainWindow);
