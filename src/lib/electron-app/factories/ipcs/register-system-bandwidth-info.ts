@@ -3,6 +3,10 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 
+import { GIGA_BYTES, MEGA_BYTES, TERA_BYTES } from '../../utils/units'
+
+const DEFAULT_STORAGE_ALLOCATION = 50 * GIGA_BYTES
+
 export function registerSystemInfo() {
   console.log('Enregistrement des handlers système...')
 
@@ -48,7 +52,7 @@ export function registerSystemInfo() {
             const freeMatch = output.match(/(\d+)\s+bytes\s+free/i)
             if (freeMatch) {
               const freeBytes = parseInt(freeMatch[1], 10)
-              console.log(`Espace libre Windows: ${Math.round(freeBytes / (1024**3))} GB`)
+              console.log(`Espace libre Windows: ${Math.round(freeBytes / GIGA_BYTES)} GB`)
               resolve(freeBytes)
               return
             }
@@ -62,18 +66,18 @@ export function registerSystemInfo() {
                   let multiplier = 1024
 
                   if (availStr.includes('G')) {
-                    multiplier = 1024 * 1024 * 1024
+                    multiplier = GIGA_BYTES
                   } else if (availStr.includes('M')) {
-                    multiplier = 1024 * 1024
+                    multiplier = MEGA_BYTES
                   } else if (availStr.includes('T')) {
-                    multiplier = 1024 * 1024 * 1024 * 1024
+                    multiplier = TERA_BYTES
                   }
 
                   const sizeNum = parseFloat(availStr.replace(/[^\d.]/g, ''))
                   const freeBytes = Math.round(sizeNum * multiplier)
 
                   if (freeBytes > 0) {
-                    console.log(`Espace libre Unix: ${Math.round(freeBytes / (1024**3))} GB`)
+                    console.log(`Espace libre Unix: ${Math.round(freeBytes / GIGA_BYTES)} GB`)
                     resolve(freeBytes)
                     return
                   }
@@ -83,23 +87,23 @@ export function registerSystemInfo() {
           }
 
           console.log('Parsing échoué, utilisation valeur par défaut')
-          resolve(50 * 1024 * 1024 * 1024)
+          resolve(DEFAULT_STORAGE_ALLOCATION)
         })
 
         child.on('error', (err: any) => {
           console.error('Erreur commande espace disque:', err)
-          resolve(50 * 1024 * 1024 * 1024)
+          resolve(DEFAULT_STORAGE_ALLOCATION)
         })
 
         setTimeout(() => {
           child.kill()
-          resolve(50 * 1024 * 1024 * 1024)
+          resolve(DEFAULT_STORAGE_ALLOCATION)
         }, 5000)
       })
 
     } catch (error) {
       console.error('Erreur get-free-space:', error)
-      return 50 * 1024 * 1024 * 1024
+      return DEFAULT_STORAGE_ALLOCATION
     }
   })
 
