@@ -106,7 +106,6 @@ export default function LoadingBars({
         };
 
         if (isCancelled) return;
-
         await climateDataService.fetchAndDownload(payload, downloadPath, callbacks);
 
       } catch (error: any) {
