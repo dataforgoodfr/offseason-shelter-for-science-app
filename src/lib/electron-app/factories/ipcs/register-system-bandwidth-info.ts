@@ -4,7 +4,6 @@ import * as os from 'os'
 import * as path from 'path'
 
 export function registerSystemInfo() {
-  console.log('Enregistrement des handlers système...')
 
   // Handler pour l'espace libre
   ipcMain.handle('get-free-space', async (event, folderPath: string) => {
@@ -242,5 +241,4 @@ export function registerSystemInfo() {
     return 10
   })
 
-  console.log('Handlers système enregistrés ✓')
 }

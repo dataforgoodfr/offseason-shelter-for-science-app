@@ -1,119 +1,187 @@
+// src/renderer/components/LoadingBars.tsx
 import { useState, useEffect } from 'react';
+import climateDataService, { 
+  type Asset, 
+  type DispatchRequestPayload,
+  type DownloadProgressCallback 
+} from '../services/climateData.service';
+import NoConnexion from './NoConnexion';
 
 interface LoadingBarsProps {
   downloadPath: string | null;
+  // Configuration pour l'API
+  rescuerId?: number;
+  nodeName?: string;
+  nodeDescription?: string;
+  freeSpaceGb?: number;
+  nodeId?: string;
 }
 
-export default function LoadingBars({ downloadPath }: LoadingBarsProps) {
+export default function LoadingBars({ 
+  downloadPath,
+  rescuerId = 154562,
+  nodeName = "Climate Rescue Node",
+  nodeDescription = "Automated data rescue system",
+  freeSpaceGb = 100,
+  nodeId = "node_" + Date.now()
+}: LoadingBarsProps) {
   const [progress, setProgress] = useState(0);
-  const [currentStatus, setCurrentStatus] = useState<'waiting' | 'downloading now' | 'uploading'>('waiting');
-  const [currentFileIndex, setCurrentFileIndex] = useState(0);
+  const [currentStatus, setCurrentStatus] = useState<'downloading now' | 'uploading'>('downloading now');
+  const [completedAssets, setCompletedAssets] = useState<Asset[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  
   const totalBars = 10;
 
   useEffect(() => {
+    if (!downloadPath) return;
 
+    let isCancelled = false;
+    let isProcessRunning = false;
 
-    // get une liste de urls a telecharger
-    const fileUrls: string[] = [
-      "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-      "https://jsonplaceholder.typicode.com/posts/1",
-      "https://jsonplaceholder.typicode.com/users/1"
-    ]
-
-    if (fileUrls.length === 0) return;
-
-    const downloadFiles = async () => {
-      setCurrentStatus('downloading now');
-      
-      for (let i = 0; i < fileUrls.length; i++) {
-        setCurrentFileIndex(i);
-          setCurrentStatus('uploading');
-        
-        try {
-          // Simuler le début du téléchargement
-          if (downloadPath) {
-            await window.App.downloadFile(fileUrls[i], downloadPath);
-          }
-          // Passer en mode "uploading" après le téléchargement
-          
-          // Mettre à jour la progress bar
-          const newProgress = Math.floor(((i + 1) / fileUrls.length) * totalBars);
-          setProgress(newProgress);
-          
-          // Petit délai pour voir le changement de statut
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-        } catch (error) {
-          console.error(`Erreur lors du téléchargement du fichier ${fileUrls[i]}:`, error);
-        }
+    const startDownloadProcess = async () => {
+      if (isCancelled || isProcessRunning) {
+        return;
       }
-      
-      // Tous les téléchargements sont terminés
-      setProgress(totalBars);
-      setCurrentStatus('uploading');
+
+      isProcessRunning = true;
+
+      try {
+        if (isCancelled) return;
+
+        setError(null);
+        setProgress(0);
+        setCurrentStatus('downloading now');
+
+        const payload: DispatchRequestPayload = {
+          name: nodeName,
+          description: nodeDescription,
+          free_space_gb: freeSpaceGb,
+          node_id: nodeId,
+          rescuer_id: rescuerId
+        };
+
+        const callbacks: DownloadProgressCallback = {
+          onProgress: (currentProgress: number, currentIndex: number, total: number) => {
+            if (isCancelled) return; 
+
+            // Calcul de la progression pour les barres
+            if (total > 0) {
+              const progressPercent = currentProgress / total;
+              const newProgress = Math.floor(progressPercent * totalBars);
+              setProgress(Math.min(newProgress, totalBars));
+            }
+          },
+
+          onStatusChange: (status) => {
+            if (isCancelled) return; 
+            
+            setCurrentStatus(status);
+            console.log(`Status changed to: ${status}`);
+          },
+
+          onFileComplete: (asset: Asset, magnetLink?: string) => {
+            if (isCancelled) return; 
+            
+            console.log(` File completed: ${asset.name}${magnetLink ? ' with magnet' : ''}`);
+            setCompletedAssets(prev => [...prev, asset]);
+          },
+
+          onComplete: (assets: Asset[]) => {
+            if (isCancelled) return; 
+            
+            setProgress(totalBars);
+            setCurrentStatus('uploading');
+            setCompletedAssets(assets);
+            console.log(` All downloads completed: ${assets.length} files`);
+            
+            // Log des résultats
+            const successCount = assets.filter(a => a.status === 'SUCCESS').length;
+            const abortedCount = assets.filter(a => a.status === 'ABORTED').length;
+            console.log(`Success: ${successCount}, Aborted: ${abortedCount}`);
+          },
+
+          onError: (errorMessage: string, asset?: Asset) => {
+            if (isCancelled) return; 
+            
+            console.error(` Download error: ${errorMessage}`, asset);
+            setError(errorMessage);
+          }
+        };
+
+        if (isCancelled) return;
+
+        await climateDataService.fetchAndDownload(payload, downloadPath, callbacks);
+
+      } catch (error: any) {
+        if (!isCancelled) { 
+          console.error(' Erreur lors du processus de téléchargement:', error);
+          setError(error?.message || 'Erreur inconnue');
+        }
+      } finally {
+        isProcessRunning = false;
+      }
     };
 
-    downloadFiles();
+    startDownloadProcess();
+
+    return () => {
+      console.log(`🧹 Cleanup useEffect - Annulation processus`);
+      isCancelled = true;
+    };
+
   }, [downloadPath]);
 
-  const getStatusText = () => {
-    switch (currentStatus) {
-      case 'downloading now':
-        return 'Downloading now';
-      case 'uploading':
-        return 'Uploading';
-      default:
-        return 'Downloading now';
-    }
+
+  const handleSubmitError = () => {
+    console.log("Error submitted"); 
   };
 
+
   return (
-    <div
-        className="w-[188px] h-[96px] flex flex-col items-center gap-[24px] pt-[16px] pb-[16px] opacity-100 mb-[39px]"
-        style={{ transform: "rotate(0deg)" }}
-    >
-        
-        <div
-            className="w-[166px] h-[32px] flex justify-center items-center opacity-100 uppercase text-white font-normal text-[46px] leading-[100%] tracking-[-0.1em]"
-            style={{ 
-            transform: "rotate(0deg)",
-            fontFamily: "LT Railway",
-            fontStyle: "normal" 
-            }}
-        >
-            <span>
-            Running
-            </span>
-        </div>
-
-        <div
-            className="w-[188px] h-[8px] flex items-center justify-between opacity-100"
-            style={{ transform: "rotate(0deg)" }}
+    <>
+      {error ? (
+        <NoConnexion onSubmitError={handleSubmitError} />
+      ) : (
+        <div className="w-[188px] h-[96px] flex flex-col items-center gap-6 py-4 mb-[39px]">
+          {/* Titre principal */}
+          <div className="w-[166px] h-8 flex justify-center items-center">
+            <span
+              className="uppercase text-white font-normal text-[46px] leading-none tracking-[-0.1em]"
+              style={{
+                fontFamily: "LT Railway",
+                fontStyle: "normal",
+              }}
             >
-                <span
-                className="w-[133px] h-[8px] uppercase text-white font-normal text-[11px] font-normal uppercase tracking-[0.1em] leading-[100%] text-center text-white"
-                style={{ fontFamily: "Akzidenz-Grotesk Pro" }}
-                >
-                {getStatusText()}
-                </span>
+              Running
+            </span>
+          </div>
 
-            <div 
-            className="flex opacity-100 w-[50px] h-[7px] gap-[2px] items-center justify-between" >
-            {Array.from({ length: totalBars }).map((_, index) => (
+          {/* Status et barre de progression */}
+          <div className="w-[188px] h-2 flex items-center justify-center gap-2">
+            <span
+              className="h-2 uppercase text-white font-normal text-[11px] tracking-[0.1em] leading-none flex items-center justify-center whitespace-nowrap"
+              style={{
+                fontFamily: "Akzidenz-Grotesk Pro",
+              }}
+            >
+              {currentStatus}
+            </span>
+
+            <div className="flex w-[55px] h-[7px] gap-[2px] items-center justify-between">
+              {Array.from({ length: totalBars }).map((_, index) => (
                 <div
-                key={index}
-                className="h-[7px] transition-colors duration-200"
-                style={{
-                    width: '0px',
-                    borderWidth: '1px',
-                    border: index < progress ? '1px solid #FFFFFF' : '1px solid #FFFFFF66',
-                    opacity: 1
-                }}
+                  key={index}
+                  className="h-[7px] transition-colors duration-200 border"
+                  style={{
+                    borderColor: index < progress ? "#FFFFFF" : "#FFFFFF66",
+                  }}
                 />
-            ))}
+              ))}
             </div>
-
+          </div>
         </div>
-    </div>
+      )}
+    </>
   );
 }
+

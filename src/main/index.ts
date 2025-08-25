@@ -14,6 +14,7 @@ import { registerDownloadStore } from "lib/electron-app/factories/ipcs/register-
 import { registerSystemInfo } from "lib/electron-app/factories/ipcs/register-system-bandwidth-info";
 
 import { registerDownloadDummy } from "lib/electron-app/factories/ipcs/register-download-dummy";
+import { climateDataHandlers } from "lib/electron-app/factories/ipcs/climateDataHandlers";
 
 makeAppWithSingleInstanceLock(async () => {
   await app.whenReady();
@@ -26,7 +27,8 @@ makeAppWithSingleInstanceLock(async () => {
   registerDownloadStore();
   registerSystemInfo(); 
   registerDownloadDummy();
-
+  climateDataHandlers();
+  
   // Create and configure the windows
   const mainWindow = await makeAppSetup(MainWindow);
   const loggerWindow = await LoggerWindow();

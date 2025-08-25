@@ -65,8 +65,8 @@ const API = {
     ipcRenderer.invoke('cleanup-downloaded-files', directoryPath),
 
   // Dummy downloader
-  downloadFile: (url: string, downloadPath: string) =>
-    ipcRenderer.invoke('download-file', url, downloadPath),
+  downloadFile: (url: string, downloadPath: string, filename: string) =>
+    ipcRenderer.invoke('download-file', url, downloadPath, filename),
   
 
    // Obtenir l'espace disque disponible (libre) pour un chemin donné
@@ -83,7 +83,15 @@ const API = {
 
   // Récupérer les préférences sauvegardées
   getStorageAllocation: () => ipcRenderer.invoke('get-storage-allocation'),
-  getBandwidthAllocation: () => ipcRenderer.invoke('get-bandwidth-allocation')
+  getBandwidthAllocation: () => ipcRenderer.invoke('get-bandwidth-allocation'),
+
+ // Nouvelles méthodes pour éviter CORS
+  fetchClimateData: (url: string, options: any) => 
+    ipcRenderer.invoke('fetch-climate-data', url, options),
+
+  checkFileExists: (filePath: string) => 
+    ipcRenderer.invoke('check-file-exists', filePath),
+
 }
 
 contextBridge.exposeInMainWorld('App', API)

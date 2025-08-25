@@ -80,36 +80,36 @@ const ShelterInitialization = ({ selectedPath, setIsRunning, setIsInitializing }
 
 
 
-const renderIcon = (status: InitStatus) => {
-  switch (status) {
-    case 'loading':
-      return (
-        <img 
-          src={processingIconUrl}
-          className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" 
-          alt="Processing"
-        />
-      );
-    case 'success':
-      return (
-        <img 
-          src={check_markIconUrl} 
-          className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px]" 
-          alt="Success"
-        />
-      );
-    case 'error':
-      return <div className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] rounded-full bg-red-500" />;
-    default:
-      return (
-        <img 
-          src={processingIconUrl}
-          className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" 
-          alt="Processing"
-        />
-      );
-  }
-};
+  const renderIcon = (status: InitStatus) => {
+    switch (status) {
+      case 'loading':
+        return (
+          <img 
+            src={processingIconUrl}
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" 
+            alt="Processing"
+          />
+        );
+      case 'success':
+        return (
+          <img 
+            src={check_markIconUrl} 
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px]" 
+            alt="Success"
+          />
+        );
+      case 'error':
+        return <div className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] rounded-full bg-red-500" />;
+      default:
+        return (
+          <img 
+            src={processingIconUrl}
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" 
+            alt="Processing"
+          />
+        );
+    }
+  };
 
   const getStatusText = (step: InitStep) => {
     if (step.status === 'success') {

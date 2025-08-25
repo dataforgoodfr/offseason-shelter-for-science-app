@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as path from "path";
 
 /*
     This component is used to download a file from a URL.
@@ -18,7 +19,7 @@ export const DummyDownloader: React.FC<DummyDownloaderProps> = ({ downloadPath }
             <button
                 className="rounded-full py-1.5 px-1 bg-[#737372]"
                 onClick={() => {
-                    window.App.downloadFile(url, downloadPath);
+                    window.App.downloadFile(url, downloadPath, path.basename(url));
                 }}>
                 Download
             </button>

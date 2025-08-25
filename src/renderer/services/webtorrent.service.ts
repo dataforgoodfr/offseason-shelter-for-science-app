@@ -38,6 +38,12 @@ export interface TorrentInfo {
   bytesReceived: number;
 }
 
+export interface DownloadCallbacks {
+  onProgress?: (progress: number, speed: string, eta: string, peers: number) => void;
+  onComplete?: (savedFiles: any[]) => void;
+  onError?: (error: string) => void;
+}
+
 // === INTERFACES POUR LES CALLBACKS ===
 export interface TorrentCallbacks {
   onReady?: (data: { torrentKey: string; info: TorrentInfo }) => void;
@@ -57,7 +63,7 @@ export interface SeedingCallbacks {
 }
 
 export class WebTorrentService {
-  private client!: WebTorrent.Instance;
+  public client!: WebTorrent.Instance;
   private progressUpdateInterval: NodeJS.Timeout | null = null;
   private prevProgress: TorrentProgress | null = null;
   private progressCallbacks: Set<(progress: TorrentProgress) => void> = new Set();
@@ -108,28 +114,42 @@ export class WebTorrentService {
     this.progressCallbacks.delete(callback);
   }
 
-  // === TÉLÉCHARGEMENT DE TORRENTS ===
-  public startTorrenting(
-    torrentKey: string,
-    torrentID: string,
-    callbacks: TorrentCallbacks,
-  ): void {
-    console.log('Starting torrent:', torrentKey, torrentID);
+public async startTorrenting(
+  torrentKey: string,
+  torrentID: string,
+  callbacks: TorrentCallbacks,
+): Promise<void> {
+  console.log('Starting torrent:', torrentKey, torrentID);
 
-    try {
-      const torrent = this.client.add(torrentID, {});
-      (torrent as any).key = torrentKey;
+  try {
+    // NETTOYAGE COMPLET ET SÉCURISÉ AVANT CHAQUE AJOUT
+    console.log('🧹 Nettoyage complet avant ajout du torrent');
+    
+    const torrents = [...this.client.torrents]; // Copie pour éviter les modifications pendant l'itération
+    torrents.forEach((torrent, index) => {
+      if (torrent && typeof torrent.destroy === 'function') {
+        console.log(`🗑️ Destruction torrent ${index + 1}/${torrents.length}: ${torrent.name || torrent.infoHash}`);
+        torrent.destroy();
+      }
+    });
+    
+    // Attendre que le nettoyage soit effectif
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    console.log('Nettoyage terminé, ajout du nouveau torrent');
 
-      this.setupTorrentEvents(torrent, callbacks);
-    } catch (error) {
-      console.error('Erreur lors du démarrage du torrent:', error);
-      callbacks.onError?.({
-        torrentKey,
-        error: error instanceof Error ? error.message : 'Erreur inconnue'
-      });
-    }
+    const torrent = this.client.add(torrentID, {});
+    (torrent as any).key = torrentKey;
+
+    this.setupTorrentEvents(torrent, callbacks);
+
+  } catch (error) {
+    console.error('Erreur lors du démarrage du torrent:', error);
+    callbacks.onError?.({
+      torrentKey,
+      error: error instanceof Error ? error.message : 'Erreur inconnue'
+    });
   }
-
+}
   public stopTorrenting(infoHash: string): void {
     console.log('Stopping torrent:', infoHash);
     const torrent = this.client.get(infoHash);
@@ -165,12 +185,18 @@ export class WebTorrentService {
           }
 
           const { fileData, originalFileName } = fileResult;
-          const torrentName = fileName || originalFileName;
-          const file = new File([fileData], torrentName);
+
+          // CRÉER UN NOM UNIQUE
+          const baseFileName = fileName || originalFileName;
+          const timestamp = Date.now();
+          const pathHash = filePath.split('/').pop() || 'unknown';
+          const uniqueTorrentName = `${baseFileName}_${pathHash}_${timestamp}`;
+
+          const file = new File([fileData], uniqueTorrentName);
           
           const options = {
-            name: torrentName,
-            comment: 'Created by Science Data Sharing App',
+            name: uniqueTorrentName,
+            comment: `Climate Data: ${filePath} - Created at ${new Date().toISOString()}`,
             createdBy: 'Science Data Sharing App v1.0.0',
             private: false,
             announceList: [
@@ -180,8 +206,9 @@ export class WebTorrentService {
           };
 
           const torrent = this.client.seed([file], options);
-          const torrentKey = `seeded-${Date.now()}`;
+          const torrentKey = `seeded-${timestamp}`;
           (torrent as any).key = torrentKey;
+          
 
           this.setupSeedingEvents(torrent, callbacks, filePath);
 
@@ -485,7 +512,7 @@ export class WebTorrentService {
         };
 
         await window.App.saveSeedingInfo(filePath, seedingInfo);
-        console.log('✅ Fichier sauvegardé pour seeding automatique:', result.torrent.name);
+        console.log('Fichier sauvegardé pour seeding automatique:', result.torrent.name);
         
         return { magnetURI: result.magnetURI };
       }
@@ -525,7 +552,7 @@ export class WebTorrentService {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        console.log('✅ Reprise du seeding terminée');
+        console.log('Reprise du seeding terminée');
       } catch (error) {
         console.error('❌ Erreur lors de la reprise du seeding:', error);
       }
@@ -552,7 +579,7 @@ export class WebTorrentService {
       if (result.error) {
         console.error('❌ Erreur reprise seeding:', result.error);
       } else {
-        console.log('✅ Seeding repris:', seedingInfo.name);
+        console.log('Seeding repris:', seedingInfo.name);
       }
     } catch (error) {
       console.error('❌ Erreur reprise seeding pour', filePath, ':', error);
@@ -586,8 +613,115 @@ export class WebTorrentService {
     this.progressCallbacks.clear();
     this.client.destroy();
   }
+
+// Dans webTorrentService
+
+/**
+ * Récupère un torrent existant par son magnetURI (SYNCHRONE)
+ * @param magnetURI - L'URI magnet du torrent à rechercher
+ * @returns Le torrent s'il existe, null sinon
+ */
+public getTorrentByMagnet(magnetURI: string): WebTorrent.Torrent | null {
+  try {
+    console.log('Recherche torrent:', magnetURI);
+    
+    // Méthode SYNCHRONE de WebTorrent pour récupérer un torrent existant
+    const torrent = this.client.get(magnetURI);
+    
+    if (torrent) {
+      console.log('Torrent trouvé:', {
+        infoHash: torrent.infoHash,
+        name: torrent.name,
+        progress: torrent.progress,
+        ready: torrent.ready,
+        done: torrent.done
+      });
+      return torrent;
+    }
+    
+    console.log('Aucun torrent trouvé pour:', magnetURI);
+    return null;
+    
+  } catch (error) {
+    console.error('Erreur getTorrentByMagnet:', error);
+    return null;
+  }
 }
 
-// Initialize and make globally available
+/**
+ * Alternative : Recherche par infoHash si le magnetURI ne fonctionne pas
+ * @param magnetURI - L'URI magnet du torrent
+ * @returns Le torrent s'il existe, null sinon
+ */
+
+public async removeTorrent(magnetOrInfoHash: string): Promise<boolean> {
+  try {
+    const torrent = this.getTorrentByMagnet(magnetOrInfoHash) || this.getTorrentByInfoHash(magnetOrInfoHash)
+    
+    if (torrent) {
+      torrent.destroy()
+      return true
+    }
+    return false
+  } catch (error) {
+    console.error('Erreur suppression torrent:', error)
+    return false
+  }
+}
+
+
+// Dans votre webTorrentService, ajoutez ces méthodes publiques :
+
+public getTorrentByInfoHash(infoHash: string): WebTorrent.Torrent | null {
+  try {
+    return this.client.get(infoHash) || 
+           this.client.torrents.find((t: WebTorrent.Torrent) => 
+             t.infoHash?.toLowerCase() === infoHash.toLowerCase()
+           ) || null;
+  } catch (error) {
+    console.error('Erreur getTorrentByInfoHash:', error);
+    return null;
+  }
+}
+
+public async removeTorrentByInfoHash(infoHash: string): Promise<boolean> {
+  try {
+    const existingTorrent = this.getTorrentByInfoHash(infoHash);
+    
+    if (existingTorrent && typeof existingTorrent.destroy === 'function') {
+      console.log(`Suppression torrent: ${existingTorrent.name || infoHash}`);
+      existingTorrent.destroy();
+      return true;
+    }
+    
+    console.log(`ℹAucun torrent trouvé pour: ${infoHash}`);
+    return false;
+  } catch (error) {
+    console.error('Erreur removeTorrentByInfoHash:', error);
+    return false;
+  }
+}
+
+public async clearAllTorrents(): Promise<number> {
+  try {
+    const torrents = [...this.client.torrents];
+    console.log(`🧹 Nettoyage de ${torrents.length} torrents`);
+    
+    torrents.forEach(torrent => {
+      if (typeof torrent.destroy === 'function') {
+        console.log(`🗑️ Destruction: ${torrent.name || torrent.infoHash}`);
+        torrent.destroy();
+      }
+    });
+    
+    return torrents.length;
+  } catch (error) {
+    console.error('Erreur clearAllTorrents:', error);
+    return 0;
+  }
+}
+  
+}
+
 const webTorrentService = new WebTorrentService();
 export default webTorrentService;

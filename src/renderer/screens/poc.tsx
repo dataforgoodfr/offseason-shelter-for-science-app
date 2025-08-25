@@ -32,32 +32,33 @@ export function MainScreen() {
 
   const [isInitializing, setIsInitializing] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true);
-  const [selectedStoragePercentage, setSelectedStoragePercentage] = useState(50);
-  const [selectedBandwidthPercentage, setSelectedBandwidthPercentage] = useState(10);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [displayedPath, setDisplayedPath] = useState<string | null>(null);
   
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
 
-  const handleSelectFolder = async () => {
-    try {
-      const folder = await App.openFolderDialog();
-      if (folder) {
-        setSelectedPath(folder);
-        setDisplayedPath(shortenPathForDisplay(folder));
-        await window.App.setDownloadPath(folder); // <-- Sauvegarde dans SQLite via IPC !
-        
-        logger.info('Download folder selected', { 
-          data: {
-            path: folder
-          }
-        });
-      }
-    } catch (error) {
-      logger.error('Error selecting folder', { error: error.message });
+const handleSelectFolder = async () => {
+  try {
+    const folder = await App.openFolderDialog();
+    if (folder) {
+      setSelectedPath(folder);
+      setDisplayedPath(shortenPathForDisplay(folder));
+      await window.App.setDownloadPath(folder);
+      
+      logger.info('Download folder selected', { 
+        data: {
+          path: folder
+        }
+      });
     }
-  };
+  } catch (error) {
+    logger.error('Error selecting folder', { 
+      data: { 
+        error: error.message 
+      }
+    });
+  }
+};
             
 
   useEffect(() => {
@@ -177,8 +178,15 @@ export function MainScreen() {
             {!isRunning ? (
               <WelcomeComponent />
             ) : (
-                <LoadingBars
+                // <LoadingBars
+                //   downloadPath={selectedPath}
+                // />
+                <LoadingBars 
                   downloadPath={selectedPath}
+                  rescuerId={154562}
+                  nodeName="My Rescue Node"
+                  nodeDescription="Climate data rescue"
+                  freeSpaceGb={100}
                 />
             )}
 
