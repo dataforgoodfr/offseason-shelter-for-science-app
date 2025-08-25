@@ -1,11 +1,8 @@
 // src/renderer/components/LoadingBars.tsx
 import { useState, useEffect } from 'react';
-import climateDataService, { 
-  type Asset, 
-  type DispatchRequestPayload,
-  type DownloadProgressCallback 
-} from '../services/climateData.service';
 import NoConnexion from './NoConnexion';
+import { Asset, DispatchRequestPayload, DownloadProgressCallback } from 'renderer/lib/types';
+import climateDataService from 'renderer/services/climateData.service';
 
 interface LoadingBarsProps {
   downloadPath: string | null;
@@ -139,7 +136,9 @@ export default function LoadingBars({
 
   return (
     <>
-      {error ? (
+    {/* le temps de trouve le probleme de dupplicate torent added */}
+      {/* {error ? ( */}
+      {false ? (
         <NoConnexion onSubmitError={handleSubmitError} />
       ) : (
         <div className="w-[188px] h-[96px] flex flex-col items-center gap-6 py-4 mb-[39px]">
