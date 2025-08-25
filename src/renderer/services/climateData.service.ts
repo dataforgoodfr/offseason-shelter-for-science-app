@@ -1,3 +1,4 @@
+import { Asset, DispatchRequestPayload, DispatchResponse, DownloadProgressCallback } from 'renderer/lib/types'
 import webTorrentService from './webtorrent.service'
 
 
