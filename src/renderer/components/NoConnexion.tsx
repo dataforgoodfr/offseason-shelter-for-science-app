@@ -2,12 +2,11 @@ interface NoConnexionProps {
   onSubmitError: () => void;
 }
 const flag = new URL('../assets/icons/flag.svg', import.meta.url).href;
-
 const NoConnexion: React.FC<NoConnexionProps> = ({ onSubmitError }) => {
+  
   return (
-
     <div
-    className="w-[188px] h-[96px] flex flex-col items-center gap-6 py-4 mb-[39px]"
+      className="w-[188px] h-[96px] flex flex-col items-center gap-6 py-4 mb-[39px]"
       style={{ transform: "rotate(0deg)" }}
     >
 
@@ -48,5 +47,4 @@ const NoConnexion: React.FC<NoConnexionProps> = ({ onSubmitError }) => {
     </div>
   );
 };
-
 export default NoConnexion;

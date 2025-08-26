@@ -1,32 +1,22 @@
-// src/renderer/components/LoadingBars.tsx
 import { useState, useEffect } from 'react';
 import NoConnexion from './NoConnexion';
 import { Asset, DispatchRequestPayload, DownloadProgressCallback } from 'renderer/lib/types';
 import climateDataService from 'renderer/services/climateData.service';
+// import { loggerService } from 'main/services/logger';
 
 interface LoadingBarsProps {
   downloadPath: string | null;
-  // Configuration pour l'API
-  rescuerId?: number;
-  nodeName?: string;
-  nodeDescription?: string;
   freeSpaceGb?: number;
-  nodeId?: string;
 }
 
 export default function LoadingBars({ 
   downloadPath,
-  rescuerId = 154562,
-  nodeName = "Climate Rescue Node",
-  nodeDescription = "Automated data rescue system",
   freeSpaceGb = 100,
-  nodeId = "node_" + Date.now()
 }: LoadingBarsProps) {
   const [progress, setProgress] = useState(0);
   const [currentStatus, setCurrentStatus] = useState<'downloading now' | 'uploading'>('downloading now');
   const [completedAssets, setCompletedAssets] = useState<Asset[]>([]);
   const [error, setError] = useState<string | null>(null);
-  
   const totalBars = 10;
 
   useEffect(() => {
@@ -39,22 +29,20 @@ export default function LoadingBars({
       if (isCancelled || isProcessRunning) {
         return;
       }
-
       isProcessRunning = true;
 
       try {
         if (isCancelled) return;
-
         setError(null);
         setProgress(0);
         setCurrentStatus('downloading now');
-
+        setError("error")
         const payload: DispatchRequestPayload = {
-          name: nodeName,
-          description: nodeDescription,
+          name: "Climate Rescue Node",
+          description: "Automated data rescue system",
           free_space_gb: freeSpaceGb,
-          node_id: nodeId,
-          rescuer_id: rescuerId
+          node_id: "node_" + Date.now(),
+          rescuer_id: 154562
         };
 
         const callbacks: DownloadProgressCallback = {
@@ -73,13 +61,12 @@ export default function LoadingBars({
             if (isCancelled) return; 
             
             setCurrentStatus(status);
-            console.log(`Status changed to: ${status}`);
           },
 
           onFileComplete: (asset: Asset, magnetLink?: string) => {
             if (isCancelled) return; 
             
-            console.log(` File completed: ${asset.name}${magnetLink ? ' with magnet' : ''}`);
+            console.info(` File completed: ${asset.name}${magnetLink ? ' with magnet' : ''}`);
             setCompletedAssets(prev => [...prev, asset]);
           },
 
@@ -89,18 +76,17 @@ export default function LoadingBars({
             setProgress(totalBars);
             setCurrentStatus('uploading');
             setCompletedAssets(assets);
-            console.log(` All downloads completed: ${assets.length} files`);
             
             // Log des résultats
             const successCount = assets.filter(a => a.status === 'SUCCESS').length;
             const abortedCount = assets.filter(a => a.status === 'ABORTED').length;
-            console.log(`Success: ${successCount}, Aborted: ${abortedCount}`);
+            console.info(`Success: ${successCount}, Aborted: ${abortedCount}`);
           },
 
           onError: (errorMessage: string, asset?: Asset) => {
             if (isCancelled) return; 
             
-            console.error(` Download error: ${errorMessage}`, asset);
+            console.error(`Download error: ${errorMessage}`, asset);
             setError(errorMessage);
           }
         };
@@ -121,27 +107,25 @@ export default function LoadingBars({
     startDownloadProcess();
 
     return () => {
-      console.log(`🧹 Cleanup useEffect - Annulation processus`);
+      console.info(`Cleanup useEffect - Annulation processus`);
       isCancelled = true;
     };
 
   }, [downloadPath]);
 
-
   const handleSubmitError = () => {
-    console.log("Error submitted"); 
+    console.info("Error submitted");
   };
-
 
   return (
     <>
-    {/* le temps de trouve le probleme de dupplicate torent added */}
+    {/* le temps de trouve le probleme de ***dupplicate torent added*** */}
       {/* {error ? ( */}
       {false ? (
+
         <NoConnexion onSubmitError={handleSubmitError} />
       ) : (
         <div className="w-[188px] h-[96px] flex flex-col items-center gap-6 py-4 mb-[39px]">
-          {/* Titre principal */}
           <div className="w-[166px] h-8 flex justify-center items-center">
             <span
               className="uppercase text-white font-normal text-[46px] leading-none tracking-[-0.1em]"
@@ -154,7 +138,6 @@ export default function LoadingBars({
             </span>
           </div>
 
-          {/* Status et barre de progression */}
           <div className="w-[188px] h-2 flex items-center justify-center gap-2">
             <span
               className="h-2 uppercase text-white font-normal text-[11px] tracking-[0.1em] leading-none flex items-center justify-center whitespace-nowrap"

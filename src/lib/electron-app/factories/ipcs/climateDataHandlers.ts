@@ -15,8 +15,6 @@ export function climateDataHandlers() {
         }
     })
 
-
-
     ipcMain.handle('fetch-climate-data', async (event, url: string, options: any) => {
     try {
         console.log('🌐 Main process HTTP call:', url)
@@ -48,51 +46,4 @@ export function climateDataHandlers() {
         }
     }
     })
-
-    // Handler pour télécharger un fichier depuis une URL
-    ipcMain.handle('download-file-from-url', async (event, url: string, downloadPath: string, filename: string) => {
-    try {
-        console.log('📥 Downloading file from URL:', url)
-        
-        const response = await fetch(url)
-        
-        if (!response.ok) {
-        return {
-            success: false,
-            error: `HTTP ${response.status}: ${response.statusText}`
-        }
-        }
-
-        const fs = require('fs')
-        const path = require('path')
-        
-        // Créer le chemin complet
-        const fullPath = path.join(downloadPath, filename)
-        
-        // Créer le dossier si il n'existe pas
-        const dir = path.dirname(fullPath)
-        if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true })
-        }
-
-        // Écrire le fichier
-        const buffer = Buffer.from(await response.arrayBuffer())
-        fs.writeFileSync(fullPath, buffer)
-
-        console.log(' File downloaded successfully:', fullPath)
-        
-        return {
-        success: true,
-        filePath: fullPath
-        }
-    } catch (error: any) {
-        console.error('❌ File download error:', error)
-        return {
-        success: false,
-        error: error?.message || 'Download failed'
-        }
-    }
-    })
-
-    console.log(' Climate data handlers registered')
 }

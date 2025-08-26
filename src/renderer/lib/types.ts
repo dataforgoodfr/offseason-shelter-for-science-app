@@ -42,7 +42,7 @@ export interface DispatchResponse {
 export interface StatusUpdatePayload {
   rescuer_id: number
   message: string
-  asset: Asset[]
+  assets: Asset[]
 }
 
 export interface DownloadProgressCallback {

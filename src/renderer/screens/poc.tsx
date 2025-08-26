@@ -1,75 +1,55 @@
 import { useEffect, useState } from "react";
-import {
-  ChevronDownIcon,
-  PauseIcon,
-  PlayIcon,
-} from "@heroicons/react/24/outline";
-
-// import LoadingBars from "renderer/components/LoadingBars";
 import WelcomeComponent from "renderer/components/WelcomeComponent";
 import ShelterInitialization from "renderer/components/initializing";
 import { logger } from "renderer/lib/logger";
-
 // import { DummyDownloader } from "renderer/components/dummy-downloader";
-
 import AboutPopup from "renderer/components/about-popup";
 import LoadingBars from "renderer/components/LoadingBars";
 
 // Header
 const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
 const gearSixUrl = new URL('../assets/icons/gear_six.svg', import.meta.url).href;
-
 const folderIconUrl = new URL('../assets/icons/path.svg', import.meta.url).href;
 const hostingIconUrl = new URL('../assets/icons/hosting.svg', import.meta.url).href;
-
-
-
 // The "App" comes from the context bridge in preload/index.ts
 const { App } = window;
 
 export function MainScreen() {
   const [isHosting, setIsHosting] = useState(false);
-
   const [isInitializing, setIsInitializing] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [displayedPath, setDisplayedPath] = useState<string | null>(null);
-  
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
+  const [freeSpace, setFreeSpace] = useState<number>(0)
 
-const handleSelectFolder = async () => {
-  try {
-    const folder = await App.openFolderDialog();
-    if (folder) {
-      setSelectedPath(folder);
-      setDisplayedPath(shortenPathForDisplay(folder));
-      await window.App.setDownloadPath(folder);
-      
-      logger.info('Download folder selected', { 
-        data: {
-          path: folder
+  const handleSelectFolder = async () => {
+    try {
+      const folder = await App.openFolderDialog();
+      if (folder) {
+        setSelectedPath(folder);
+        setDisplayedPath(shortenPathForDisplay(folder));
+        await window.App.setDownloadPath(folder);
+        
+        logger.info('Download folder selected', { 
+          data: {
+            path: folder
+          }
+        });
+      }
+    } catch (error: any) {
+      logger.error('Error selecting folder', { 
+        data: { 
+          error: error.message 
         }
       });
     }
-  } catch (error) {
-    logger.error('Error selecting folder', { 
-      data: { 
-        error: error.message 
-      }
-    });
-  }
-};
-            
+  };
 
   useEffect(() => {
     // check the console on dev tools
     App.sayHelloFromBridge();
   }, []);
-
-    useEffect(() => {
-    // check the console on dev tools
-   console.log("is running passe a ", isRunning)
-  }, [isRunning]);
 
   useEffect(() => {
     window.App.getDownloadedFiles().then((downloadedFiles: any) => {
@@ -171,22 +151,14 @@ const handleSelectFolder = async () => {
       
       <div className="s4s-content flex pt-[38px] flex-col items-center gap-0 self-stretch rounded-md">
   
-
         {!isInitializing ? (
           <>
-            
             {!isRunning ? (
               <WelcomeComponent />
             ) : (
-                // <LoadingBars
-                //   downloadPath={selectedPath}
-                // />
                 <LoadingBars 
                   downloadPath={selectedPath}
-                  rescuerId={154562}
-                  nodeName="My Rescue Node"
-                  nodeDescription="Climate data rescue"
-                  freeSpaceGb={100}
+                  freeSpaceGb={freeSpace * 0.8} // On envoi les 80% de l'espace disponible
                 />
             )}
 
@@ -272,6 +244,7 @@ const handleSelectFolder = async () => {
           <ShelterInitialization 
             selectedPath={selectedPath}
             setIsRunning={setIsRunning}
+            setFreeSpace={setFreeSpace}
             setIsInitializing={setIsInitializing}
           />
           

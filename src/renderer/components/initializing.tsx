@@ -8,10 +8,11 @@ const check_markIconUrl = new URL('../assets/icons/check_mark.svg', import.meta.
 interface StorageProps {
   selectedPath: string | null;
   setIsRunning: (isRunning: boolean) => void;
+  setFreeSpace: (freeSpace: number) => void;
   setIsInitializing: (isInitializing: boolean) => void;
 }
 
-const ShelterInitialization = ({ selectedPath, setIsRunning, setIsInitializing }: StorageProps) => {
+const ShelterInitialization = ({ selectedPath, setIsRunning, setFreeSpace, setIsInitializing }: StorageProps) => {
   const [steps, setSteps] = useState<InitStep[]>([
     // { id: 'download', label: 'DOWNLOAD', status: 'loading' },
     { id: 'folder', label: 'FOLDER ACCESS', status: 'loading' },
@@ -19,7 +20,6 @@ const ShelterInitialization = ({ selectedPath, setIsRunning, setIsInitializing }
   ]);
   const [hasError, setHasError] = useState(false);
   const [retryTrigger, setRetryTrigger] = useState(0);
-  const [freeStorage, setFreeStorage] = useState<number>(0)
 
   const handleRetry = () => {
     setHasError(false);
@@ -32,9 +32,8 @@ const ShelterInitialization = ({ selectedPath, setIsRunning, setIsInitializing }
   };
 
   const handleSubmitError = () => {
-    console.log("Error submitted"); 
+    console.info("Error submitted"); 
   };
-
 
   useEffect(() => {
     const checkFolder = async () => {
@@ -45,17 +44,14 @@ const ShelterInitialization = ({ selectedPath, setIsRunning, setIsInitializing }
           ));
           const freeBytes = await window.App.getFreeSpace(selectedPath);
           
-          // Attendre 2 secondes pour voir le chargement
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
+          await new Promise(resolve => setTimeout(resolve, 500));
           if (freeBytes) {
-            setFreeStorage(freeBytes);
-            
+            setFreeSpace(freeBytes);
             setSteps(prev => prev.map(step => 
               step.id === 'folder' ? { ...step, status: 'success' } : step
             ));
 
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             setIsRunning(true)
             setIsInitializing(false)
@@ -77,8 +73,6 @@ const ShelterInitialization = ({ selectedPath, setIsRunning, setIsInitializing }
 
     checkFolder();
   }, []);
-
-
 
   const renderIcon = (status: InitStatus) => {
     switch (status) {
@@ -123,58 +117,56 @@ const ShelterInitialization = ({ selectedPath, setIsRunning, setIsInitializing }
   return (
     <div className="w-[188px] h-[190px] gap-[48px] pt-[16px] flex flex-col items-center">
 
-
-    <div
-      className="w-[166px] h-[36px] flex items-center justify-center opacity-100"
-      style={{ transform: "rotate(0deg)" }}
-    >
-      <span
-        className="text-white font-medium text-center leading-[100%] tracking-[-0.01em]"
-        style={{
-          fontFamily: "Akzidenz-Grotesk Pro",
-          fontSize: "18.57px",
-          letterSpacing: '-1%'
-        }}
+      <div
+        className="w-[166px] h-[36px] flex items-center justify-center opacity-100"
+        style={{ transform: "rotate(0deg)" }}
       >
-        {hasError ? ("Error, unable to create a shelter") :
-        (
-          <>
-            Initialization
-            <br />
-            of your shelter
-          </>
-        )}
-        
-      </span>
-    </div>
+        <span
+          className="text-white font-medium text-center leading-[100%] tracking-[-0.01em]"
+          style={{
+            fontFamily: "Akzidenz-Grotesk Pro",
+            fontSize: "18.57px",
+            letterSpacing: '-1%'
+          }}
+        >
+          {hasError ? ("Error, unable to create a shelter") :
+          (
+            <>
+              Initialization
+              <br />
+              of your shelter
+            </>
+          )}
+          
+        </span>
+      </div>
 
       {hasError ? (
-  <ErrorActions onRetry={handleRetry} onSubmitError={handleSubmitError} />
-) : (
-      // Steps
-      <div className="flex flex-col justify-center items-center w-[138px] h-[64px] gap-[8px]">
-        {steps.map((step) => (
-          <div key={step.id} className=" w-[136px] h-[16px] gap-[8px] flex items-center gap-3">
-            <div className="text-white">
-              {renderIcon(step.status)}
-            </div>
+        <ErrorActions onRetry={handleRetry} onSubmitError={handleSubmitError} />
+      ) : (
+        // Steps
+        <div className="flex flex-col justify-center items-center w-[138px] h-[64px] gap-[8px]">
+          {steps.map((step) => (
+            <div key={step.id} className=" w-[136px] h-[16px] gap-[8px] flex items-center gap-3">
+              <div className="text-white">
+                {renderIcon(step.status)}
+              </div>
 
-            <div
-              className="w-[85px] h-[6px] flex items-center opacity-100 whitespace-nowrap"
-              style={{ transform: "rotate(0deg)" }}
-            >
-              <span
-                className="text-[9px] font-normal uppercase tracking-[0.1em] leading-[100%] text-white"
-                style={{ fontFamily: "Akzidenz-Grotesk Pro" }}
+              <div
+                className="w-[85px] h-[6px] flex items-center opacity-100 whitespace-nowrap"
+                style={{ transform: "rotate(0deg)" }}
               >
-                {getStatusText(step)}
-              </span>
+                <span
+                  className="text-[9px] font-normal uppercase tracking-[0.1em] leading-[100%] text-white"
+                  style={{ fontFamily: "Akzidenz-Grotesk Pro" }}
+                >
+                  {getStatusText(step)}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
       )}
-
     
     </div>
   );
