@@ -14,6 +14,8 @@ interface DownloadResult {
   error?: string;
 }
 
+import { MEGA_BYTES } from "../../lib/electron-app/utils/units"
+
 /**
  * Downloads a file from a URL and saves it to the specified directory
  * @param url - The URL of the file to download
@@ -183,7 +185,7 @@ export async function downloadMultipleFiles(
  * Formats speed in MB/s or KB/s
  */
 function formatSpeed(bytesPerSecond: number): string {
-  const mbps = bytesPerSecond / (1024 * 1024);
+  const mbps = bytesPerSecond / (MEGA_BYTES);
   if (mbps >= 1) {
     return `${mbps.toFixed(1)} MB/s`;
   }
