@@ -113,6 +113,9 @@ const API = {
     ipcRenderer.on('init:error', (_, data) => callback(data))
     return () => ipcRenderer.removeAllListeners('init:error')
   },
+
+  // Window height control
+  expandMainWindowHeight: (isExpanded: boolean) => ipcRenderer.invoke('window:expand-height', isExpanded),
 }
 
 contextBridge.exposeInMainWorld('App', API)

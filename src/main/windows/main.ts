@@ -2,15 +2,15 @@ import { BrowserWindow } from 'electron'
 import { join } from 'node:path'
 
 import { createWindow } from 'lib/electron-app/factories/windows/create'
-import { ENVIRONMENT } from 'shared/constants'
+import { ENVIRONMENT, WINDOW_DIMENSIONS } from 'shared/constants'
 import { displayName } from '~/package.json'
 
 export async function MainWindow() {
   const window = createWindow({
     id: 'main',
     title: displayName,
-    width: 220,
-    height: 309,
+    width: WINDOW_DIMENSIONS.MAIN.WIDTH,
+    height: WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED,
     show: false,
     center: true,
     movable: true,
@@ -28,8 +28,8 @@ export async function MainWindow() {
       window.webContents.openDevTools({ mode: 'detach' })
     }
 
-    window.show()
-  })
+    window.show();
+  });
 
   window.on('close', () => {
     for (const window of BrowserWindow.getAllWindows()) {
