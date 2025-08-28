@@ -4,7 +4,7 @@ import * as path from "path";
 import type { Readable } from "stream";
 import httpService from "./http.service";
 import { getDownloadPath } from "./store.service";
-import { addDownloadedFile } from "./download-store.service";
+import { downloadStoreService } from "./download-store.service";
 import { MEGA_BYTES } from "../../lib/electron-app/utils/units";
 
 export async function downloadDataset(
@@ -68,7 +68,7 @@ export async function downloadDataset(
       console.log(`Download completed: ${filePath}`);
       
       // Store the downloaded file path in the database
-      addDownloadedFile(filePath);
+      downloadStoreService.addDownloadedFile(filePath);
 
       resolve(filePath);
     });

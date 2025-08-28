@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { addDownloadedFile } from "./download-store.service";
+import { downloadStoreService } from "./download-store.service";
 
 interface DownloadProgress {
   progress: number;
@@ -113,7 +113,7 @@ export async function downloadFile(
     });
 
     // Add file to downloaded files store
-    addDownloadedFile(filePath);
+    downloadStoreService.addDownloadedFile(filePath);
     console.log(`📝 Added to download store: ${filePath}`);
 
     return {

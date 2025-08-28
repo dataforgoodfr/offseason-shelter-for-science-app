@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import WelcomeComponent from "renderer/components/WelcomeComponent";
 import ShelterInitialization from "renderer/components/initializing";
+import Cleanup from "renderer/components/Cleanup";
 import { logger } from "renderer/lib/logger";
 import AboutPopup from "renderer/components/about-popup";
-import { GIGA_BYTES } from "../../lib/electron-app/utils/units";
 
 // broija 2025/08/25 : dissociated download logic from graphic features
 import LoadingBars from "renderer/components/LoadingBarsDisplay";
@@ -28,6 +28,7 @@ export function MainScreen() {
   const [freeSpace, setFreeSpace] = useState<number>(0);
   const [allocatedStorage, setAllocatedStorage] = useState<number>(10); // Default 10GB
   const [showStorageSelector, setShowStorageSelector] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
   const downloadManager = useDownloadManager();
 
   const handleInitializationComplete = useCallback((freeBytes: number) => {
@@ -162,15 +163,20 @@ export function MainScreen() {
   };
 
   const handleStopHosting = () => {
-    setIsHosting(false);
-    setIsInitializing(false);
-    setIsRunning(false);
     downloadManager.cancelDownload();
     downloadManager.resetDownload();
 
     if (selectedPath) {
+      setIsCleaningUp(true);
       window.App.cleanupDownloadedFiles(selectedPath);
     }
+  };
+
+  const handleCleanupComplete = () => {
+    setIsHosting(false);
+    setIsInitializing(false);
+    setIsRunning(false);
+    setIsCleaningUp(false);
   };
 
   const toggleAboutPopup = () => {
@@ -234,7 +240,9 @@ export function MainScreen() {
       
       <div className="s4s-content flex pt-[38px] flex-col items-center gap-0 self-stretch rounded-md flex-1">
   
-        {!isInitializing ? (
+        {isCleaningUp ? (
+          <Cleanup onCleanupComplete={handleCleanupComplete} />
+        ) : !isInitializing ? (
           <>
             {!isRunning ? (
               <>
