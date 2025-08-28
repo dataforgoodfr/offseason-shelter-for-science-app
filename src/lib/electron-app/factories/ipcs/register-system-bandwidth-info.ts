@@ -8,7 +8,6 @@ import { GIGA_BYTES, MEGA_BYTES, TERA_BYTES } from '../../utils/units'
 const DEFAULT_STORAGE_ALLOCATION = 50 * GIGA_BYTES
 
 export function registerSystemInfo() {
-  console.log('Enregistrement des handlers système...')
 
   // Handler pour l'espace libre
   ipcMain.handle('get-free-space', async (event, folderPath: string) => {
@@ -246,5 +245,4 @@ export function registerSystemInfo() {
     return 10
   })
 
-  console.log('Handlers système enregistrés ✓')
 }

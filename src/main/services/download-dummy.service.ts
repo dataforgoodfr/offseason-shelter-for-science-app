@@ -27,6 +27,7 @@ import { MEGA_BYTES } from "../../lib/electron-app/utils/units"
 export async function downloadFile(
   url: string,
   downloadPath: string,
+  fileName?: string,
   onProgress?: (progress: DownloadProgress) => void
 ): Promise<DownloadResult> {
   try {
@@ -39,8 +40,7 @@ export async function downloadFile(
       throw new Error("Invalid URL");
     }
 
-    // Extract file name from URL
-    const fileName = path.basename(url) || `download_${Date.now()}`;
+    fileName = fileName || `download_${Date.now()}`;
 
     // Build complete file path
     const filePath = path.join(downloadPath, fileName);
