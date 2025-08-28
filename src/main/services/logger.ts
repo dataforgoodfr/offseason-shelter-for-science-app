@@ -1,10 +1,11 @@
 import { BrowserWindow, ipcMain } from 'electron'
+import { LogSource, LOG_SOURCE_MAIN, LOG_SOURCE_RENDERER } from 'lib/electron-app/types/logger'
 
 export interface LogEntry {
   id: string
   timestamp: Date
   level: 'info' | 'warn' | 'error' | 'debug'
-  source: 'main' | 'renderer' | 'system'
+  source: LogSource
   message: string
   data?: any
 }
@@ -27,7 +28,7 @@ class LoggerService {
     ipcMain.handle('logger:add-log', (event, logData: Omit<LogEntry, 'id' | 'timestamp'>) => {
       this.addLog({
         ...logData,
-        source: 'renderer'
+        source: LOG_SOURCE_RENDERER
       })
     })
     
@@ -83,7 +84,7 @@ class LoggerService {
   info(message: string, data?: any) {
     this.addLog({
       level: 'info',
-      source: 'main',
+      source: LOG_SOURCE_MAIN,
       message,
       data
     })
@@ -92,7 +93,7 @@ class LoggerService {
   warn(message: string, data?: any) {
     this.addLog({
       level: 'warn',
-      source: 'main',
+      source: LOG_SOURCE_MAIN,
       message,
       data
     })
@@ -101,7 +102,7 @@ class LoggerService {
   error(message: string, data?: any) {
     this.addLog({
       level: 'error',
-      source: 'main',
+      source: LOG_SOURCE_MAIN,
       message,
       data
     })
@@ -110,7 +111,7 @@ class LoggerService {
   debug(message: string, data?: any) {
     this.addLog({
       level: 'debug',
-      source: 'main',
+      source: LOG_SOURCE_MAIN,
       message,
       data
     })
