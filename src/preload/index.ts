@@ -92,6 +92,27 @@ const API = {
   checkFileExists: (filePath: string) => 
     ipcRenderer.invoke('check-file-exists', filePath),
 
+  // Initialization methods
+  startInitialization: (path: string) => ipcRenderer.invoke('init:start', path),
+  retryInitialization: () => ipcRenderer.invoke('init:retry'),
+  
+  // Initialization event listeners
+  onInitializationStepStatus: (callback: (data: { stepId: string, status: string }) => void) => {
+    ipcRenderer.on('init:step-status', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('init:step-status')
+  },
+  onInitializationStateChange: (callback: (data: { state: string, value: boolean }) => void) => {
+    ipcRenderer.on('init:state-change', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('init:state-change')
+  },
+  onInitializationComplete: (callback: (data: { freeBytes: number }) => void) => {
+    ipcRenderer.on('init:complete', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('init:complete')
+  },
+  onInitializationError: (callback: (data: { error: string }) => void) => {
+    ipcRenderer.on('init:error', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('init:error')
+  },
 }
 
 contextBridge.exposeInMainWorld('App', API)

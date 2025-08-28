@@ -1,5 +1,7 @@
 import { Asset, DispatchRequestPayload, DispatchResponse, DownloadProgressCallback, StatusUpdatePayload } from 'renderer/lib/types'
 import webTorrentService from './webtorrent.service'
+import { logger } from 'renderer/lib/logger'
+import { truncateMagnetLink } from 'renderer/lib/torrent'
 
 class ClimateDataService {
   private readonly API_BASE_URL = 'https://us-climate-data-dispatcher.services.dataforgood.fr'
@@ -256,8 +258,15 @@ class ClimateDataService {
             }
 
             try {
-              console.log(`Envoi du magnet link au dispatcher pour ${asset.name}`)
-              console.log(`Envoi du magnet link au dispatcher magnet = ${asset.magnet}`)
+              if (asset.magnet) {
+              logger.info('Sending magnet link to rescue API', {
+                name: asset.name,
+                magnet: truncateMagnetLink(asset.magnet)
+                })
+              } else {
+                logger.info('Sending file status to rescue API', { name: asset.name })
+              }
+
               await this.sendStatusUpdate({
                 rescuer_id: 123, 
                 message: "Mise à jour de l'état",
