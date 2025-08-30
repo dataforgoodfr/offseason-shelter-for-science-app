@@ -8,6 +8,7 @@ import { GIGA_BYTES } from "../../lib/electron-app/utils/units";
 // broija 2025/08/25 : dissociated download logic from graphic features
 import LoadingBars from "renderer/components/LoadingBarsDisplay";
 import { useDownloadManager, DownloadManager } from "renderer/hooks/useDownloadManager";
+import StorageSelector from "renderer/components/storage-selector";
 
 // Header
 const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
@@ -25,6 +26,8 @@ export function MainScreen() {
   const [displayedPath, setDisplayedPath] = useState<string | null>(null);
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
   const [freeSpace, setFreeSpace] = useState<number>(0);
+  const [allocatedStorage, setAllocatedStorage] = useState<number>(10); // Default 10GB
+  const [showStorageSelector, setShowStorageSelector] = useState(false);
   const downloadManager = useDownloadManager();
 
   const handleInitializationComplete = useCallback((freeBytes: number) => {
@@ -35,10 +38,21 @@ export function MainScreen() {
     }
     
     setIsRunning(true);
-    logger.info('Starting download');
     
     downloadManager.startDownload(selectedPath, freeBytes);
-  }, [selectedPath, downloadManager]);
+  }, [selectedPath, downloadManager, allocatedStorage]);
+
+  const handleStorageSelected = useCallback((storageGB: number) => {
+    setAllocatedStorage(storageGB);
+  }, []);
+
+  const toggleStorageSelector = useCallback(() => {
+    const newState = !showStorageSelector;
+    setShowStorageSelector(newState);
+    
+    // Resize window based on storage selector state
+    window.App.expandMainWindowHeight(newState);
+  }, [showStorageSelector]);
 
   // Setup IPC event listeners for init state management
   useEffect(() => {
@@ -130,6 +144,10 @@ export function MainScreen() {
     setIsHosting(true);
     setIsInitializing(true);
 
+    // Hide storage selector and resize window
+    setShowStorageSelector(false);
+    window.App.expandMainWindowHeight(false);
+
     try {
       const result = await App.startInitialization(selectedPath);
       if (!result.success) {
@@ -178,7 +196,7 @@ export function MainScreen() {
   }, [isAboutPopupOpen]);
 
   return (
-    <div className="s4s-container relative flex w-[220px] p-4 flex-col items-start gap-0 box-border rounded-xl border border-white bg-gradient-to-t from-transparent via-transparent to-black/30 backdrop-blur-[17px] overflow-visible"
+    <div className="s4s-container relative flex w-[220px] h-screen p-4 flex-col items-start gap-0 box-border rounded-xl border border-white bg-gradient-to-t from-transparent via-transparent to-black/30 backdrop-blur-[17px] overflow-visible"
         style={{ 
           background: 'linear-gradient(0deg, rgba(0, 0, 0, 0.00) 50%, rgba(0, 0, 0, 0.30) 100%), rgba(69, 126, 101, 0.75)'
         }}
@@ -214,12 +232,21 @@ export function MainScreen() {
         />
       )}
       
-      <div className="s4s-content flex pt-[38px] flex-col items-center gap-0 self-stretch rounded-md">
+      <div className="s4s-content flex pt-[38px] flex-col items-center gap-0 self-stretch rounded-md flex-1">
   
         {!isInitializing ? (
           <>
             {!isRunning ? (
-              <WelcomeComponent />
+              <>
+                {!showStorageSelector ? (
+                  <WelcomeComponent />
+                ) : (
+                  <StorageSelector
+                    onStorageSelected={handleStorageSelected}
+                    defaultSelection={allocatedStorage}
+                  />
+                )}
+              </>
             ) : (
                 <LoadingBars 
                   progress={downloadManager.progress}
@@ -267,36 +294,55 @@ export function MainScreen() {
             </div>
 
 
-            {/* Start hosting button */}
+            {/* Storage configuration and start hosting buttons */}
             {!isRunning && !isHosting && (
-              <div 
-                className="group w-[188px] h-12 flex items-center
-                  justify-between opacity-100 rounded-[40px] px-5 py-4
-                  bg-black shadow-lg relative
-                  hover:bg-gradient-to-t from-[#C4FFEA] to-[#FBDF9C]
-                  transition-all duration-300
-                  cursor-pointer"
-                style={{
-                  boxShadow: '0px 6px 8px 0px #00000040'
-                }}
-                onClick={selectedPath ? handleStartHosting : undefined}
-              >
-                {selectedPath && (
+              <div className="flex flex-col gap-3 w-full items-center">
+                {/* Storage configuration button */}
                 <div 
-                  className="absolute inset-0 rounded-[40px] p-1"
+                  className="w-[188px] h-10 flex items-center justify-between 
+                           px-4 py-2 rounded-[20px] border border-white/30 
+                           hover:border-white/50 hover:bg-white/5 
+                           transition-all duration-200 cursor-pointer"
+                  onClick={toggleStorageSelector}
                 >
-                  <div className="w-full h-full bg-black rounded-[36px]"></div>
-                </div>
-                )}
-                <div className="relative z-10 flex items-center justify-between w-full">
-                  <span className="text-akz-gro text-sm text-white">
-                    {selectedPath ? "Start hosting" : "Select path first"}
+                  <span className="text-akz-gro text-xs text-white/80">
+                    Storage: {allocatedStorage} GB
                   </span>
-                  <img
-                    src={hostingIconUrl}
-                    alt="Download"
-                    className="w-[16px] h-[16px] aspect-square"
-                  />
+                  <span className="text-akz-gro text-xs text-white/60">
+                    {showStorageSelector ? "Close" : "Configure"}
+                  </span>
+                </div>
+
+                {/* Start hosting button */}
+                <div 
+                  className="group w-[188px] h-12 flex items-center
+                    justify-between opacity-100 rounded-[40px] px-5 py-4
+                    bg-black shadow-lg relative
+                    hover:bg-gradient-to-t from-[#C4FFEA] to-[#FBDF9C]
+                    transition-all duration-300
+                    cursor-pointer"
+                  style={{
+                    boxShadow: '0px 6px 8px 0px #00000040'
+                  }}
+                  onClick={selectedPath ? handleStartHosting : undefined}
+                >
+                  {selectedPath && (
+                  <div 
+                    className="absolute inset-0 rounded-[40px] p-1"
+                  >
+                    <div className="w-full h-full bg-black rounded-[36px]"></div>
+                  </div>
+                  )}
+                  <div className="relative z-10 flex items-center justify-between w-full">
+                    <span className="text-akz-gro text-sm text-white">
+                      {selectedPath ? "Start hosting" : "Select path first"}
+                    </span>
+                    <img
+                      src={hostingIconUrl}
+                      alt="Download"
+                      className="w-[16px] h-[16px] aspect-square"
+                    />
+                  </div>
                 </div>
               </div>
             )}

@@ -16,6 +16,7 @@ import { registerSystemInfo } from "lib/electron-app/factories/ipcs/register-sys
 import { registerDownloadDummy } from "lib/electron-app/factories/ipcs/register-download-dummy";
 import { climateDataHandlers } from "lib/electron-app/factories/ipcs/climateDataHandlers";
 import { registerInitialization } from "lib/electron-app/factories/ipcs/register-initialization";
+import { registerWindowEvents } from "lib/electron-app/factories/ipcs/register-window-events";
 
 makeAppWithSingleInstanceLock(async () => {
   await app.whenReady();
@@ -30,6 +31,7 @@ makeAppWithSingleInstanceLock(async () => {
   registerDownloadDummy();
   climateDataHandlers();
   registerInitialization();
+  registerWindowEvents();
   
   // Create and configure the windows
   const mainWindow = await makeAppSetup(MainWindow);

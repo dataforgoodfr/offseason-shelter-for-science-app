@@ -7,3 +7,13 @@ export const PLATFORM = {
   IS_WINDOWS: process.platform === 'win32',
   IS_LINUX: process.platform === 'linux',
 }
+
+export const WINDOW_DIMENSIONS = {
+  MAIN: {
+    WIDTH: 220,
+    HEIGHT: {
+      COLLAPSED: 361,
+      EXPANDED: 492,
+    },
+  },
+} as const
