@@ -252,6 +252,8 @@ class ClimateDataService {
           // Envoi du magnetLink au dispatcher
           if (result.success) {
 
+            logger.info('File downloaded', { name: asset.name});
+
             asset.status = 'SUCCESS'
             if (result.magnetLink) {
               asset.magnet = result.magnetLink
@@ -268,7 +270,7 @@ class ClimateDataService {
               }
 
               await this.sendStatusUpdate({
-                rescuer_id: 123, 
+                rescuer_id: 154562, 
                 message: "Mise à jour de l'état",
                 assets: [asset] 
               })
@@ -322,7 +324,7 @@ class ClimateDataService {
       if (!response.asset || response.asset.length === 0) {
         throw new Error('Aucun asset à télécharger')
       }
-      console.info(`${response.asset.length} assets récupérés de l'API`)
+      logger.info(`${response.asset.length} assets retrieved from API`)
 
       return await this.downloadAssets(
         response.asset,

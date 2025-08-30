@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { MagnifyingGlassIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { LOG_SOURCE_MAIN, LOG_SOURCE_RENDERER, LOG_SOURCE_SYSTEM, LogSource } from "lib/electron-app/types/logger";
 
 // Types
 interface LogEntry {
   id: string;
   timestamp: Date;
   level: 'info' | 'warn' | 'error' | 'debug';
-  source: 'main' | 'renderer' | 'system';
+  source: LogSource;
   message: string;
   data?: any;
 }
@@ -14,7 +15,7 @@ interface LogEntry {
 export function LoggerScreen() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filterLevel, setFilterLevel] = useState<'all' | 'info' | 'warn' | 'error' | 'debug'>('all');
-  const [filterSource, setFilterSource] = useState<'all' | 'main' | 'renderer' | 'system'>('all');
+  const [filterSource, setFilterSource] = useState<'all' | LogSource>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -79,9 +80,9 @@ export function LoggerScreen() {
 
   const getSourceColor = (source: LogEntry['source']) => {
     switch (source) {
-      case 'main': return 'text-green-300';
-      case 'renderer': return 'text-green-300';
-      case 'system': return 'text-red-500';
+      case LOG_SOURCE_MAIN: return 'text-green-300';
+      case LOG_SOURCE_RENDERER: return 'text-green-300';
+      case LOG_SOURCE_SYSTEM: return 'text-red-500';
       default: return 'text-gray-400';
     }
   };
@@ -139,9 +140,9 @@ export function LoggerScreen() {
               }}
             >
               <option value="all">All</option>
-              <option value="main">Main</option>
-              <option value="renderer">Renderer</option>
-              <option value="system">System</option>
+              <option value={LOG_SOURCE_MAIN}>Main</option>
+              <option value={LOG_SOURCE_RENDERER}>Renderer</option>
+              <option value={LOG_SOURCE_SYSTEM}>System</option>
             </select>
           </div>
 

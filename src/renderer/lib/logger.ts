@@ -1,8 +1,10 @@
+import { LOG_SOURCE_RENDERER } from "lib/electron-app/types/logger";
+
 export const logger = {
   info: (message: string, data?: any) => {
     window.App.addLog({
       level: 'info',
-      source: 'renderer',
+      source: LOG_SOURCE_RENDERER,
       message,
       data
     });
@@ -11,7 +13,7 @@ export const logger = {
   warn: (message: string, data?: any) => {
     window.App.addLog({
       level: 'warn',
-      source: 'renderer',
+      source: LOG_SOURCE_RENDERER,
       message,
       data
     });
@@ -20,7 +22,7 @@ export const logger = {
   error: (message: string, data?: any) => {
     window.App.addLog({
       level: 'error',
-      source: 'renderer',
+      source: LOG_SOURCE_RENDERER,
       message,
       data
     });
@@ -29,7 +31,7 @@ export const logger = {
   debug: (message: string, data?: any) => {
     window.App.addLog({
       level: 'debug',
-      source: 'renderer',
+      source: LOG_SOURCE_RENDERER,
       message,
       data
     });
