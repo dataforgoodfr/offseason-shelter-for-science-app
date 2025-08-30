@@ -13,7 +13,6 @@ export default function AboutPopup({ onStopHosting, onContactUs, onGoToWebsite }
     const webIconUrl = new URL('../assets/icons/web.svg', import.meta.url).href;
 
     const handleStopHosting = () => {
-        console.log('Stop hosting clicked');
         onStopHosting();
       };
     

@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import NoConnexion from './NoConnexion';
 import { Asset, DispatchRequestPayload, DownloadProgressCallback } from 'renderer/lib/types';
 import climateDataService from 'renderer/services/climateData.service';
-// import { loggerService } from 'main/services/logger';
 
 interface LoadingBarsProps {
   downloadPath: string | null;
   freeSpaceGb?: number;
 }
 
+/** @deprecated 2025/08/27 : this component is not used anymore, it's replaced by the useDownloadManager hook and LoadingBarsDisplay component */
 export default function LoadingBars({ 
   downloadPath,
   freeSpaceGb = 100,
@@ -66,7 +66,7 @@ export default function LoadingBars({
           onFileComplete: (asset: Asset, magnetLink?: string) => {
             if (isCancelled) return; 
             
-            console.info(` File completed: ${asset.name}${magnetLink ? ' with magnet' : ''}`);
+            console.info(`File completed: ${asset.name}${magnetLink ? ' with magnet' : ''}`);
             setCompletedAssets(prev => [...prev, asset]);
           },
 

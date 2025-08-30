@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import WelcomeComponent from "renderer/components/WelcomeComponent";
 import ShelterInitialization from "renderer/components/initializing";
 import { logger } from "renderer/lib/logger";
-// import { DummyDownloader } from "renderer/components/dummy-downloader";
 import AboutPopup from "renderer/components/about-popup";
-import LoadingBars from "renderer/components/LoadingBars";
+import { GIGA_BYTES } from "../../lib/electron-app/utils/units";
+
+// broija 2025/08/25 : dissociated download logic from graphic features
+import LoadingBars from "renderer/components/LoadingBarsDisplay";
+import { useDownloadManager, DownloadManager } from "renderer/hooks/useDownloadManager";
 
 // Header
 const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
@@ -21,8 +24,51 @@ export function MainScreen() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [displayedPath, setDisplayedPath] = useState<string | null>(null);
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
-  const [freeSpace, setFreeSpace] = useState<number>(0)
+  const [freeSpace, setFreeSpace] = useState<number>(0);
+  const downloadManager = useDownloadManager();
 
+  const handleInitializationComplete = useCallback((freeBytes: number) => {
+    setFreeSpace(freeBytes);
+
+    if (!selectedPath) {
+      return;
+    }
+    
+    setIsRunning(true);
+    logger.info('Starting download');
+    
+    downloadManager.startDownload(selectedPath, freeBytes);
+  }, [selectedPath, downloadManager]);
+
+  // Setup IPC event listeners for init state management
+  useEffect(() => {
+    const cleanupStateChange = window.App.onInitializationStateChange((data) => {
+      if (data.state === 'initializing') {
+        setIsInitializing(data.value);
+      } else if (data.state === 'running') {
+        setIsRunning(data.value);
+      }
+    });
+
+    const cleanupComplete = window.App.onInitializationComplete((data) => {
+      handleInitializationComplete(data.freeBytes);
+    });
+
+    const cleanupError = window.App.onInitializationError((data) => {
+      logger.error('Received initialization error', { data });
+
+      setIsHosting(false);
+      setIsInitializing(false);
+      setIsRunning(false);
+    });
+
+    return () => {
+      cleanupStateChange();
+      cleanupComplete();
+      cleanupError();
+    };
+  }, [handleInitializationComplete]);
+  
   const handleSelectFolder = async () => {
     try {
       const folder = await App.openFolderDialog();
@@ -67,21 +113,46 @@ export function MainScreen() {
 
   useEffect(() => {
     window.App.getDownloadPath().then((path) => {
-    if (path) {
-      setSelectedPath(path);
-      setDisplayedPath(shortenPathForDisplay(path));
-    }
+      if (path) {
+        setSelectedPath(path);
+        setDisplayedPath(shortenPathForDisplay(path));
+      }
     });
   }, []);
 
 
-  const handleStartHosting = () => {
+  const handleStartHosting = async () => {
+    if (!selectedPath) {
+      logger.error('Cannot start hosting: no path selected');
+      return;
+    }
+
     setIsHosting(true);
     setIsInitializing(true);
-    logger.info('Hosting started', { 
-      downloadPath: selectedPath,
-      timestamp: new Date().toISOString()
-    });
+
+    try {
+      const result = await App.startInitialization(selectedPath);
+      if (!result.success) {
+        logger.error('Initialization failed', { error: result.error });
+        // Error handling will be done via IPC events
+      }
+    } catch (error: any) {
+      logger.error('Failed to start initialization', { error: error.message });
+      setIsHosting(false);
+      setIsInitializing(false);
+    }
+  };
+
+  const handleStopHosting = () => {
+    setIsHosting(false);
+    setIsInitializing(false);
+    setIsRunning(false);
+    downloadManager.cancelDownload();
+    downloadManager.resetDownload();
+
+    if (selectedPath) {
+      window.App.cleanupDownloadedFiles(selectedPath);
+    }
   };
 
   const toggleAboutPopup = () => {
@@ -131,14 +202,8 @@ export function MainScreen() {
       {isAboutPopupOpen && (
         <AboutPopup 
           onStopHosting={() => {
-            setIsHosting(false);
-            setIsInitializing(false);
+            handleStopHosting();
             setIsAboutPopupOpen(false);
-            setIsRunning(false);
-
-            if (selectedPath) {
-              window.App.cleanupDownloadedFiles(selectedPath);
-            }
           }}
           onContactUs={() => {
             setIsAboutPopupOpen(false);
@@ -157,8 +222,8 @@ export function MainScreen() {
               <WelcomeComponent />
             ) : (
                 <LoadingBars 
-                  downloadPath={selectedPath}
-                  freeSpaceGb={freeSpace * 0.8} // On envoi les 80% de l'espace disponible
+                  progress={downloadManager.progress}
+                  currentStatus={downloadManager.currentStatus}
                 />
             )}
 
@@ -176,7 +241,7 @@ export function MainScreen() {
             >
               <div className="flex w-full">
                 
-                <div className=" w-full flex items-center w-full gap-2 flex-1 min-w-0">
+                <div className="w-full flex items-center gap-2 flex-1 min-w-0">
                   <img
                     src={folderIconUrl}
                     alt="Path selection"
@@ -203,7 +268,7 @@ export function MainScreen() {
 
 
             {/* Start hosting button */}
-            {!isRunning && (
+            {!isRunning && !isHosting && (
               <div 
                 className="group w-[188px] h-12 flex items-center
                   justify-between opacity-100 rounded-[40px] px-5 py-4
@@ -241,13 +306,7 @@ export function MainScreen() {
             <DummyDownloader downloadPath={selectedPath || ""} />*/}
           </>
         ) : (
-          <ShelterInitialization 
-            selectedPath={selectedPath}
-            setIsRunning={setIsRunning}
-            setFreeSpace={setFreeSpace}
-            setIsInitializing={setIsInitializing}
-          />
-          
+          <ShelterInitialization />
         )}
 
         

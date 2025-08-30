@@ -1,5 +1,6 @@
 import Store from "electron-store";
 import * as fs from "fs";
+import { loggerService } from "./logger";
 
 const store = new Store();
 
@@ -30,7 +31,7 @@ interface DownloadedFile {
     };
     
     store.set("downloadedFiles", downloadedFiles);
-    console.log(`📁 Added downloaded file: ${filePath}`);
+    console.log(`📁 Added downloaded file to DB: ${filePath}`);
   }
   
   // Delete all downloaded files in a directory
@@ -42,7 +43,7 @@ interface DownloadedFile {
     const deletedFiles: string[] = [];
     const errors: string[] = [];
     
-    console.log(`🧹 Starting cleanup of downloaded files in: ${directoryPath}`);
+    loggerService.info(`Starting cleanup of downloaded files...`);
     
     // For all downloaded files
     Object.values(downloadedFiles).forEach((fileInfo) => {
@@ -54,9 +55,9 @@ interface DownloadedFile {
             // Delete the file
             fs.unlinkSync(fileInfo.filePath);
             deletedFiles.push(fileInfo.filePath);
-            console.log(`✅ Deleted: ${fileInfo.filePath}`);
+            loggerService.info(`Deleted: ${fileInfo.filePath}`);
           } else {
-            console.log(`⚠️ File not found: ${fileInfo.filePath}`);
+            loggerService.warn(`File not found: ${fileInfo.filePath}`);
           }
           
           // Delete the file from the database
@@ -65,7 +66,7 @@ interface DownloadedFile {
         } catch (error) {
           const errorMsg = `Failed to delete ${fileInfo.filePath}: ${error}`;
           errors.push(errorMsg);
-          console.error(`❌ ${errorMsg}`);
+          loggerService.error(`Failed to delete ${fileInfo.filePath}: ${error}`);
         }
       }
     });
@@ -73,7 +74,7 @@ interface DownloadedFile {
     // Update the store
     store.set("downloadedFiles", downloadedFiles);
     
-    console.log(`✨ Cleanup completed. Deleted: ${deletedFiles.length}, Errors: ${errors.length}`);
+    loggerService.info(`Cleanup completed. Deleted: ${deletedFiles.length}, Errors: ${errors.length}`);
     
     return { deletedFiles, errors };
   }

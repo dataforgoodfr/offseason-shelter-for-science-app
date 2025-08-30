@@ -1,6 +1,8 @@
 // src/renderer/services/webtorrent.service.ts
 // @ts-ignore
 import WebTorrent from 'webtorrent/dist/webtorrent.min.js';
+import { logger } from 'renderer/lib/logger';
+import { truncateMagnetLink } from 'renderer/lib/torrent';
 
 // === TYPES ET INTERFACES ===
 export interface TorrentProgress {
@@ -127,16 +129,21 @@ public async startTorrenting(
     
     const torrents = [...this.client.torrents]; // Copie pour éviter les modifications pendant l'itération
     torrents.forEach((torrent, index) => {
-      if (torrent && typeof torrent.destroy === 'function') {
+      if (torrent) {
+        console.log(`🗑️ Destroying torrent ${index + 1}/${torrents.length}: ${torrent.name || torrent.infoHash}`);
+        this.client.destroyTorrent(torrent);
+      }
+/*       if (torrent && typeof torrent.destroy === 'function') {
         console.log(`🗑️ Destruction torrent ${index + 1}/${torrents.length}: ${torrent.name || torrent.infoHash}`);
         torrent.destroy();
-      }
+      } */
     });
     
     // Attendre que le nettoyage soit effectif
     await new Promise(resolve => setTimeout(resolve, 3000));
     console.log('Nettoyage terminé, ajout du nouveau torrent');
 
+    logger.debug("Downloading torrent", truncateMagnetLink(torrentID));
     const torrent = this.client.add(torrentID, {});
     (torrent as any).key = torrentKey;
 
@@ -196,8 +203,8 @@ public async startTorrenting(
           
           const options = {
             name: uniqueTorrentName,
-            comment: `Climate Data: ${filePath} - Created at ${new Date().toISOString()}`,
-            createdBy: 'Science Data Sharing App v1.0.0',
+            comment: `${filePath} - Created at ${new Date().toISOString()}`,
+            createdBy: 'Shelter For Science App', // @todo : add app version at build time ?
             private: false,
             announceList: [
               ['wss://tracker.btorrent.xyz'],

@@ -25,12 +25,6 @@ loggerService.info('Information message');
 
 // Log with data
 loggerService.warn('Warning', { userId: 123, action: 'login' });
-
-// Log only in console
-loggerService.error('Critical error', null, { console: true, logger: false });
-
-// Log only in logging window
-loggerService.debug('Debug info', { data: 'test' }, { console: false, logger: true });
 ```
 
 ### From Renderer Process
@@ -42,14 +36,7 @@ import { logger } from './utils/logger';
 logger.info('Information message');
 
 // Log with data
-logger.warn('Warning', { data: 'content' });
-
-// Log only in console
-logger.consoleOnly.info('Console only');
-
-// Log only in logging window
-logger.loggerOnly.error('Logger only');
-```
+logger.warn('Warning', { foo: 'bar' });
 
 ## Log Structure
 

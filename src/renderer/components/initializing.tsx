@@ -1,82 +1,45 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ErrorActions from "./ErrorActions";
 import { InitStatus, InitStep } from "renderer/lib/types";
-
+import { 
+  useInitialization,
+  StepStatus,
+  STEP_STATUS_LOADING,
+  STEP_STATUS_SUCCESS,
+  STEP_STATUS_ERROR,
+  STEP_ID_UPLOAD,
+} from "renderer/hooks/useInitialization";
 
 const processingIconUrl = new URL('../assets/icons/processing.svg', import.meta.url).href;
 const check_markIconUrl = new URL('../assets/icons/check_mark.svg', import.meta.url).href;
-interface StorageProps {
-  selectedPath: string | null;
-  setIsRunning: (isRunning: boolean) => void;
-  setFreeSpace: (freeSpace: number) => void;
-  setIsInitializing: (isInitializing: boolean) => void;
-}
 
-const ShelterInitialization = ({ selectedPath, setIsRunning, setFreeSpace, setIsInitializing }: StorageProps) => {
-  const [steps, setSteps] = useState<InitStep[]>([
-    // { id: 'download', label: 'DOWNLOAD', status: 'loading' },
-    { id: 'folder', label: 'FOLDER ACCESS', status: 'loading' },
-    // { id: 'upload', label: 'UPLOAD', status: 'loading' }
-  ]);
+import { logger } from "renderer/lib/logger";
+
+// Props removed - component only displays steps now
+
+const ShelterInitialization = () => {
   const [hasError, setHasError] = useState(false);
-  const [retryTrigger, setRetryTrigger] = useState(0);
+  const [error, setError] = useState<Error | null>(null);
 
-  const handleRetry = () => {
-    setHasError(false);
-    setSteps([
-      // { id: 'download', label: 'DOWNLOAD', status: 'loading' },
-      { id: 'folder', label: 'FOLDER ACCESS', status: 'loading' },
-      // { id: 'upload', label: 'UPLOAD', status: 'loading' }
-    ]);
-    setRetryTrigger(prev => prev + 1);
+  const handleError = (error: Error) => {
+    logger.error(error.message);
+    setHasError(true);
+    setError(error);
   };
 
   const handleSubmitError = () => {
-    console.info("Error submitted"); 
+    if (error) {
+      logger.info("Error submitted", { error: error.message });
+    }
   };
 
-  useEffect(() => {
-    const checkFolder = async () => {
-      if (selectedPath) {
-        try {
-          setSteps(prev => prev.map(step => 
-            step.id === 'folder' ? { ...step, status: 'loading' } : step
-          ));
-          const freeBytes = await window.App.getFreeSpace(selectedPath);
-          
-          await new Promise(resolve => setTimeout(resolve, 500));
-          if (freeBytes) {
-            setFreeSpace(freeBytes);
-            setSteps(prev => prev.map(step => 
-              step.id === 'folder' ? { ...step, status: 'success' } : step
-            ));
-
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            setIsRunning(true)
-            setIsInitializing(false)
-          }
-
-        } catch (error) {
-          console.error('Failed to get free space for path:', selectedPath);
-          setHasError(true);
-          
-          setSteps(prev => prev.map(step => 
-            step.id === 'folder' ? { ...step, status: 'error' } : step
-          ));
-
-          setIsRunning(false)
-          setIsInitializing(true)
-        }
-      }
-    };
-
-    checkFolder();
-  }, []);
+  const { steps, handleRetry } = useInitialization({
+    onError: handleError,
+  });
 
   const renderIcon = (status: InitStatus) => {
     switch (status) {
-      case 'loading':
+      case STEP_STATUS_LOADING:
         return (
           <img 
             src={processingIconUrl}
@@ -84,7 +47,7 @@ const ShelterInitialization = ({ selectedPath, setIsRunning, setFreeSpace, setIs
             alt="Processing"
           />
         );
-      case 'success':
+      case STEP_STATUS_SUCCESS:
         return (
           <img 
             src={check_markIconUrl} 
@@ -92,7 +55,7 @@ const ShelterInitialization = ({ selectedPath, setIsRunning, setFreeSpace, setIs
             alt="Success"
           />
         );
-      case 'error':
+      case STEP_STATUS_ERROR:
         return <div className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] rounded-full bg-red-500" />;
       default:
         return (
@@ -106,9 +69,9 @@ const ShelterInitialization = ({ selectedPath, setIsRunning, setFreeSpace, setIs
   };
 
   const getStatusText = (step: InitStep) => {
-    if (step.status === 'success') {
+    if (step.status === STEP_STATUS_SUCCESS) {
       return `${step.label} : OK`;
-    } else if (step.status === 'loading' && step.id === 'upload') {
+    } else if (step.status === STEP_STATUS_LOADING && step.id === STEP_ID_UPLOAD) {
       return `${step.label} : TESTING...`;
     }
     return step.label;
@@ -146,8 +109,8 @@ const ShelterInitialization = ({ selectedPath, setIsRunning, setFreeSpace, setIs
       ) : (
         // Steps
         <div className="flex flex-col justify-center items-center w-[138px] h-[64px] gap-[8px]">
-          {steps.map((step) => (
-            <div key={step.id} className=" w-[136px] h-[16px] gap-[8px] flex items-center gap-3">
+          {steps.map((step: InitStep) => (
+            <div key={step.id} className="w-[136px] h-[16px] flex items-center gap-[8px]">
               <div className="text-white">
                 {renderIcon(step.status)}
               </div>
