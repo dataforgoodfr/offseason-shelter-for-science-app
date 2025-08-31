@@ -122,7 +122,7 @@ export function MainScreen() {
   }, []);
 
   function shortenPathForDisplay(path: string) {
-    return '.../' + path.split('/').slice(-1)[0];
+    return `.../${path.split('/').slice(-1)[0]}`;
   }
 
   useEffect(() => {
@@ -196,24 +196,83 @@ export function MainScreen() {
   }, [isAboutPopupOpen]);
 
   return (
-    <div className="s4s-container relative w-[220px] h-full bg-[hsla(154,29%,38%,1)] p-4 rounded-2xl border-2 border-[#457E65] leading-light"
+    <div className="s4s-container relative w-full h-full bg-[hsla(154,29%,38%,1)] p-4 rounded-2xl border-2 border-[#457E65] leading-light"
       style={{
         background: "linear-gradient(0deg, rgba(0, 0, 0, 0.00) 50%, rgba(0, 0, 0, 0.30) 100%), #457E65"
       }}>
       <div className="flex flex-col h-full justify-between space-y-4">
-        {/* Header */}
-        <div className="s4s-header flex justify-between items-center">
-          <img
-            src={s4sLogoUrl}
-            alt="S4S Logo"
-            className="w-[188px] h-[20px]"
-          />
-          <img
-            src={gearSixUrl}
-            alt="Gear Six"
-            className="gear-icon w-[16px] h-[16px] cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={toggleAboutPopup}
-          />
+        {/* Header avec zone de déplacement */}
+        <div className="s4s-header">
+          {/* Zone de déplacement - toute la largeur du header */}
+          <div className="flex justify-between items-rigth">
+
+          </div>
+          <div className="flex justify-between items-center">
+            <div
+              className="flex-1 h-full cursor-move flex items-center"
+              onMouseDown={(e) => {
+                if (e.button === 0) { // Clic gauche seulement
+                  // Déplacer la fenêtre directement
+                  e.preventDefault();
+                  const startX = e.clientX;
+                  const startY = e.clientY;
+
+                  const handleMouseMove = (moveEvent: MouseEvent) => {
+                    const deltaX = moveEvent.clientX - startX;
+                    const deltaY = moveEvent.clientY - startY;
+                    window.App.moveWindow(deltaX, deltaY);
+                  };
+
+                  const handleMouseUp = () => {
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                  };
+
+                  document.addEventListener('mousemove', handleMouseMove);
+                  document.addEventListener('mouseup', handleMouseUp);
+                }
+              }}
+            >
+              <img
+                src={s4sLogoUrl}
+                alt="S4S Logo"
+                className="w-[188px] h-[20px] pointer-events-none"
+              />
+            </div>
+
+            {/* Contrôles à droite */}
+            <div className="flex items-center gap-2">
+              {/* Bouton minimize */}
+              <button
+                className="w-4 h-4 rounded-full bg-transparent hover:bg-white/10 transition-colors flex items-center justify-center"
+                onClick={() => window.App.minimize()}
+              >
+                <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20 14H4v-2h16v2z" />
+                </svg>
+              </button>
+              {/* Bouton fermer */}
+              <button
+                className="w-4 h-4 rounded-full bg-transparent hover:bg-white/10 transition-colors flex items-center justify-center"
+                onClick={() => window.App.close()}
+              >
+                <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                </svg>
+              </button>
+              {/* Bouton settings */}
+              <button
+                className="gear-icon w-[16px] h-[16px] cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={toggleAboutPopup}
+              >
+                <img
+                  src={gearSixUrl}
+                  alt="Gear Six"
+                  className="w-full h-full"
+                />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* About Popup */}
@@ -255,54 +314,46 @@ export function MainScreen() {
             </div>
 
             {/* Path */}
-            <div
-              className="s4s-path flex justify-between items-center px-3 py-2 rounded-full border border-white/30 opacity-100 cursor-pointer mb-[16px]"
+            <button
+              className="w-full min-h-[35px] max-h-[35px] h-[35px] flex items-center justify-between 
+             px-4 py-0 rounded-[20px] border border-white/30 
+             hover:border-white/50 hover:bg-white/5 
+             transition-all duration-200 cursor-pointer focus:outline-none
+             box-border"
               onClick={handleSelectFolder}
               title={selectedPath || undefined}
-              style={{
-                background: "linear-gradient(0deg, #457E65, #457E65), linear-gradient(360deg, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.3) 100%)",
-                width: '188px',
-                height: '35px',
-                color: 'rgba(0, 0, 0, 0.15)'
-              }}
             >
-              <div className="flex w-full">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <img
+                  src={folderIconUrl}
+                  alt="Path selection"
+                  className="w-[16px] h-[16px] aspect-square flex-shrink-0"
+                />
+                <span className="text-akz-gro text-xs truncate">
+                  {selectedPath ? displayedPath : "Choose path..."}
+                </span>
+              </div>
 
-                <div className="w-full flex items-center gap-2 flex-1 min-w-0">
-                  <img
-                    src={folderIconUrl}
-                    alt="Path selection"
-                    className="w-[16px] h-[16px] aspect-square flex-shrink-0"
-                  />
-                  <span className="text-akz-gro text-xs truncate">
-                    {selectedPath ? displayedPath : "Choose path..."}
+              {/* Only visible if path is already set */}
+              {selectedPath && (
+                <div className="w-[43px] h-[19px] flex items-center justify-center rounded-full py-1.5 px-1 bg-[#737372] flex-shrink-0 ml-2">
+                  <span className="text-akz-gro text-[10px] font-medium text-white">
+                    Change
                   </span>
                 </div>
-
-                {/* Only visible if path is already set */}
-                {selectedPath && (
-                  <div
-                    className="w-[43px] h-[19px] flex items-center justify-center rounded-full py-1.5 px-1 bg-[#737372] flex-shrink-0"
-                  >
-                    <span className="text-akz-gro text-[10px] font-medium text-white">
-                      Change
-                    </span>
-                  </div>
-                )}
-
-              </div>
-            </div>
-
+              )}
+            </button>
 
             {/* Storage configuration and start hosting buttons */}
             {!isRunning && !isHosting && (
               <>
                 {/* Storage configuration button */}
-                <div
-                  className="w-full h-10 flex items-center justify-between 
-                           px-4 py-2 rounded-[20px] border border-white/30 
-                           hover:border-white/50 hover:bg-white/5 
-                           transition-all duration-200 cursor-pointer"
+                <button
+                  className="w-full min-h-[35px] max-h-[35px] h-[35px] flex items-center justify-between 
+                 px-4 py-0 rounded-[20px] border border-white/30 
+                 hover:border-white/50 hover:bg-white/5 
+                 transition-all duration-200 cursor-pointer focus:outline-none
+                 box-border"
                   onClick={toggleStorageSelector}
                 >
                   <span className="text-akz-gro text-xs text-white/80">
@@ -311,20 +362,21 @@ export function MainScreen() {
                   <span className="text-akz-gro text-xs text-white/60">
                     {showStorageSelector ? "Close" : "Configure"}
                   </span>
-                </div>
+                </button>
 
                 {/* Start hosting button */}
-                <div
+                <button
                   className="group w-[188px] h-12 flex items-center
                     justify-between opacity-100 rounded-[40px] px-5 py-4
                     bg-black shadow-lg relative
                     hover:bg-gradient-to-t from-[#C4FFEA] to-[#FBDF9C]
                     transition-all duration-300
-                    cursor-pointer"
+                    cursor-pointer focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                   style={{
                     boxShadow: '0px 6px 8px 0px #00000040'
                   }}
                   onClick={selectedPath ? handleStartHosting : undefined}
+                  disabled={!selectedPath}
                 >
                   {selectedPath && (
                     <div
@@ -343,7 +395,7 @@ export function MainScreen() {
                       className="w-[16px] h-[16px] aspect-square"
                     />
                   </div>
-                </div>
+                </button>
               </>
             )}
 
