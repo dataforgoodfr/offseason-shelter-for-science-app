@@ -36,9 +36,9 @@ export function MainScreen() {
     if (!selectedPath) {
       return;
     }
-    
+
     setIsRunning(true);
-    
+
     downloadManager.startDownload(selectedPath, freeBytes);
   }, [selectedPath, downloadManager, allocatedStorage]);
 
@@ -49,7 +49,7 @@ export function MainScreen() {
   const toggleStorageSelector = useCallback(() => {
     const newState = !showStorageSelector;
     setShowStorageSelector(newState);
-    
+
     // Resize window based on storage selector state
     window.App.expandMainWindowHeight(newState);
   }, [showStorageSelector]);
@@ -82,7 +82,7 @@ export function MainScreen() {
       cleanupError();
     };
   }, [handleInitializationComplete]);
-  
+
   const handleSelectFolder = async () => {
     try {
       const folder = await App.openFolderDialog();
@@ -90,17 +90,17 @@ export function MainScreen() {
         setSelectedPath(folder);
         setDisplayedPath(shortenPathForDisplay(folder));
         await window.App.setDownloadPath(folder);
-        
-        logger.info('Download folder selected', { 
+
+        logger.info('Download folder selected', {
           data: {
             path: folder
           }
         });
       }
     } catch (error: any) {
-      logger.error('Error selecting folder', { 
-        data: { 
-          error: error.message 
+      logger.error('Error selecting folder', {
+        data: {
+          error: error.message
         }
       });
     }
@@ -196,68 +196,68 @@ export function MainScreen() {
   }, [isAboutPopupOpen]);
 
   return (
-    <div className="s4s-container relative flex w-[220px] h-screen p-4 flex-col items-start gap-0 box-border rounded-xl border border-white bg-gradient-to-t from-transparent via-transparent to-black/30 backdrop-blur-[17px] overflow-visible"
-        style={{ 
-          background: 'linear-gradient(0deg, rgba(0, 0, 0, 0.00) 50%, rgba(0, 0, 0, 0.30) 100%), rgba(69, 126, 101, 0.75)'
-        }}
-    >
-      {/* Header */}
-      <div className="s4s-header flex justify-between items-center self-stretch">
-        <img
-              src={s4sLogoUrl}
-              alt="S4S Logo"
-              className="w-[188px] h-[20px]"
-        />
-        <img
-          src={gearSixUrl}
-          alt="Gear Six"
-          className="gear-icon w-[16px] h-[16px] cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={toggleAboutPopup}
-        />
-      </div>
+    <div className="s4s-container relative w-[220px] h-full bg-[hsla(154,29%,38%,1)] p-4 rounded-2xl border-2 border-[#457E65] leading-light"
+      style={{
+        background: "linear-gradient(0deg, rgba(0, 0, 0, 0.00) 50%, rgba(0, 0, 0, 0.30) 100%), #457E65"
+      }}>
+      <div className="flex flex-col h-full justify-between space-y-4">
+        {/* Header */}
+        <div className="s4s-header flex justify-between items-center">
+          <img
+            src={s4sLogoUrl}
+            alt="S4S Logo"
+            className="w-[188px] h-[20px]"
+          />
+          <img
+            src={gearSixUrl}
+            alt="Gear Six"
+            className="gear-icon w-[16px] h-[16px] cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={toggleAboutPopup}
+          />
+        </div>
 
-      {/* About Popup */}
-      {isAboutPopupOpen && (
-        <AboutPopup 
-          onStopHosting={() => {
-            handleStopHosting();
-            setIsAboutPopupOpen(false);
-          }}
-          onContactUs={() => {
-            setIsAboutPopupOpen(false);
-          }}
-          onGoToWebsite={() => {
-            setIsAboutPopupOpen(false);
-          }}
-        />
-      )}
-      
-      <div className="s4s-content flex pt-[38px] flex-col items-center gap-0 self-stretch rounded-md flex-1">
-  
+        {/* About Popup */}
+        {isAboutPopupOpen && (
+          <AboutPopup
+            onStopHosting={() => {
+              handleStopHosting();
+              setIsAboutPopupOpen(false);
+            }}
+            onContactUs={() => {
+              setIsAboutPopupOpen(false);
+            }}
+            onGoToWebsite={() => {
+              setIsAboutPopupOpen(false);
+            }}
+          />
+        )}
+
         {!isInitializing ? (
           <>
-            {!isRunning ? (
-              <>
-                {!showStorageSelector ? (
-                  <WelcomeComponent />
-                ) : (
-                  <StorageSelector
-                    onStorageSelected={handleStorageSelected}
-                    defaultSelection={allocatedStorage}
-                  />
-                )}
-              </>
-            ) : (
-                <LoadingBars 
+            <div className="pt-4">
+              {!isRunning ? (
+                <>
+                  {!showStorageSelector ? (
+                    <WelcomeComponent />
+                  ) : (
+                    <StorageSelector
+                      onStorageSelected={handleStorageSelected}
+                      defaultSelection={allocatedStorage}
+                    />
+                  )}
+                </>
+              ) : (
+                <LoadingBars
                   progress={downloadManager.progress}
                   currentStatus={downloadManager.currentStatus}
                 />
-            )}
+              )}
+            </div>
 
             {/* Path */}
-            <div 
-              className="s4s-path flex justify-between items-center self-stretch px-3 py-2 rounded-full border border-white/30 opacity-100 cursor-pointer mb-[16px]"
-              onClick={handleSelectFolder} 
+            <div
+              className="s4s-path flex justify-between items-center px-3 py-2 rounded-full border border-white/30 opacity-100 cursor-pointer mb-[16px]"
+              onClick={handleSelectFolder}
               title={selectedPath || undefined}
               style={{
                 background: "linear-gradient(0deg, #457E65, #457E65), linear-gradient(360deg, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.3) 100%)",
@@ -267,7 +267,7 @@ export function MainScreen() {
               }}
             >
               <div className="flex w-full">
-                
+
                 <div className="w-full flex items-center gap-2 flex-1 min-w-0">
                   <img
                     src={folderIconUrl}
@@ -278,10 +278,10 @@ export function MainScreen() {
                     {selectedPath ? displayedPath : "Choose path..."}
                   </span>
                 </div>
-                
+
                 {/* Only visible if path is already set */}
                 {selectedPath && (
-                  <div 
+                  <div
                     className="w-[43px] h-[19px] flex items-center justify-center rounded-full py-1.5 px-1 bg-[#737372] flex-shrink-0"
                   >
                     <span className="text-akz-gro text-[10px] font-medium text-white">
@@ -290,16 +290,16 @@ export function MainScreen() {
                   </div>
                 )}
 
-              </div>     
+              </div>
             </div>
 
 
             {/* Storage configuration and start hosting buttons */}
             {!isRunning && !isHosting && (
-              <div className="flex flex-col gap-3 w-full items-center">
+              <>
                 {/* Storage configuration button */}
-                <div 
-                  className="w-[188px] h-10 flex items-center justify-between 
+                <div
+                  className="w-full h-10 flex items-center justify-between 
                            px-4 py-2 rounded-[20px] border border-white/30 
                            hover:border-white/50 hover:bg-white/5 
                            transition-all duration-200 cursor-pointer"
@@ -314,7 +314,7 @@ export function MainScreen() {
                 </div>
 
                 {/* Start hosting button */}
-                <div 
+                <div
                   className="group w-[188px] h-12 flex items-center
                     justify-between opacity-100 rounded-[40px] px-5 py-4
                     bg-black shadow-lg relative
@@ -327,11 +327,11 @@ export function MainScreen() {
                   onClick={selectedPath ? handleStartHosting : undefined}
                 >
                   {selectedPath && (
-                  <div 
-                    className="absolute inset-0 rounded-[40px] p-1"
-                  >
-                    <div className="w-full h-full bg-black rounded-[36px]"></div>
-                  </div>
+                    <div
+                      className="absolute inset-0 rounded-[40px] p-1"
+                    >
+                      <div className="w-full h-full bg-black rounded-[36px]"></div>
+                    </div>
                   )}
                   <div className="relative z-10 flex items-center justify-between w-full">
                     <span className="text-akz-gro text-sm text-white">
@@ -344,9 +344,9 @@ export function MainScreen() {
                     />
                   </div>
                 </div>
-              </div>
+              </>
             )}
-            
+
 
             {/* Dummy downloader 
             <DummyDownloader downloadPath={selectedPath || ""} />*/}
@@ -355,22 +355,19 @@ export function MainScreen() {
           <ShelterInitialization />
         )}
 
-        
-      </div>
-
-      {/* Footer */}
-      <div
-        className="w-[188px] h-[32px] flex items-center gap-2 pt-2 opacity-80 justify-center"
-        style={{ transform: "rotate(0deg)" }}
-      >
-        <span
-          className="text-[9px] text-white font-normal uppercase tracking-[0.1em] leading-[100%] text-center align-middle"
-          style={{ fontFamily: "Akzidenz-Grotesk Pro" }}
+        {/* Footer */}
+        <div
+          className="w-full h-[32px] flex items-center gap-2 pt-2 opacity-80 justify-center"
+          style={{ transform: "rotate(0deg)" }}
         >
-          made with ♡ by the data for good community
-        </span>
+          <span
+            className="text-[9px] text-white font-normal uppercase tracking-[0.1em] leading-[100%] text-center align-middle"
+            style={{ fontFamily: "Akzidenz-Grotesk Pro" }}
+          >
+            made with ♡ by the data for good community
+          </span>
+        </div>
       </div>
-
-    </div>
+    </div >
   );
 }

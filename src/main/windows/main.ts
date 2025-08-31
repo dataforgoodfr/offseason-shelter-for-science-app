@@ -11,6 +11,8 @@ export async function MainWindow() {
     title: displayName,
     width: WINDOW_DIMENSIONS.MAIN.WIDTH,
     height: WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED,
+    frame: true,
+    transparent: true,
     show: false,
     center: true,
     movable: true,

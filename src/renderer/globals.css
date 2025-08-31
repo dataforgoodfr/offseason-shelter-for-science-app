@@ -146,10 +146,15 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
   html,
   body {
+    height: 100vh;
     user-select: none;
     scroll-behavior: smooth;
     -webkit-app-region: no-drag;
     -webkit-font-smoothing: antialiased;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    overflow: hidden;
   }
 }
 
