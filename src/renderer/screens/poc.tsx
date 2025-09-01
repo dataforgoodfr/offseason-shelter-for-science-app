@@ -242,6 +242,17 @@ export function MainScreen() {
 
             {/* Contrôles à droite */}
             <div className="flex items-center gap-2">
+              {/* Bouton settings */}
+              <button
+                className="gear-icon w-[16px] h-[16px] cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={toggleAboutPopup}
+              >
+                <img
+                  src={gearSixUrl}
+                  alt="Gear Six"
+                  className="w-full h-full"
+                />
+              </button>
               {/* Bouton minimize */}
               <button
                 className="w-4 h-4 rounded-full bg-transparent hover:bg-white/10 transition-colors flex items-center justify-center"
@@ -259,17 +270,6 @@ export function MainScreen() {
                 <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
                 </svg>
-              </button>
-              {/* Bouton settings */}
-              <button
-                className="gear-icon w-[16px] h-[16px] cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={toggleAboutPopup}
-              >
-                <img
-                  src={gearSixUrl}
-                  alt="Gear Six"
-                  className="w-full h-full"
-                />
               </button>
             </div>
           </div>
