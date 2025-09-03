@@ -1,22 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ErrorActions from "./ErrorActions";
 import { InitStatus, InitStep } from "renderer/lib/types";
 import { 
-  useInitialization,
-  STEP_STATUS_LOADING,
+  useCleanup,
+  STEP_STATUS_INPROGRESS,
   STEP_STATUS_SUCCESS,
   STEP_STATUS_ERROR,
-  STEP_ID_UPLOAD,
-} from "renderer/hooks/useInitialization";
+} from "renderer/hooks/useCleanup";
 
 const processingIconUrl = new URL('../assets/icons/processing.svg', import.meta.url).href;
 const check_markIconUrl = new URL('../assets/icons/check_mark.svg', import.meta.url).href;
 
 import { logger } from "renderer/lib/logger";
 
-// Props removed - component only displays steps now
+interface CleanupProps {
+  onCleanupComplete?: () => void;
+}
 
-const ShelterInitialization = () => {
+const Cleanup = ({ onCleanupComplete }: CleanupProps) => {
   const [hasError, setHasError] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -32,13 +33,20 @@ const ShelterInitialization = () => {
     }
   };
 
-  const { steps, handleRetry } = useInitialization({
+  const handleComplete = () => {
+    if (onCleanupComplete) {
+      onCleanupComplete();
+    }
+  };
+
+  const { steps, startCleanup } = useCleanup({
     onError: handleError,
+    onComplete: handleComplete,
   });
 
   const renderIcon = (status: InitStatus) => {
     switch (status) {
-      case STEP_STATUS_LOADING:
+      case STEP_STATUS_INPROGRESS:
         return (
           <img 
             src={processingIconUrl}
@@ -69,9 +77,9 @@ const ShelterInitialization = () => {
 
   const getStatusText = (step: InitStep) => {
     if (step.status === STEP_STATUS_SUCCESS) {
-      return `${step.label} : OK`;
-    } else if (step.status === STEP_STATUS_LOADING && step.id === STEP_ID_UPLOAD) {
-      return `${step.label} : TESTING...`;
+      return `${step.label} : DONE !`;
+    } else if (step.status === STEP_STATUS_INPROGRESS) {
+      return `${step.label} : IN PROGRESS...`;
     }
     return step.label;
   };
@@ -84,19 +92,19 @@ const ShelterInitialization = () => {
         style={{ transform: "rotate(0deg)" }}
       >
         <span
-          className="text-white font-medium text-center leading-[100%] tracking-[-0.01em]"
+          className="text-white font-bold text-center leading-[100%] tracking-[-0.01em]"
           style={{
             fontFamily: "Akzidenz-Grotesk Pro",
             fontSize: "18.57px",
             letterSpacing: '-1%'
           }}
         >
-          {hasError ? ("Error, unable to create a shelter") :
+          {hasError ? ("Error, unable to cleanup shelter") :
           (
             <>
-              Creation of
+              Starting cleanup of
               <br />
-              your shelter
+              your shelter...
             </>
           )}
           
@@ -104,7 +112,7 @@ const ShelterInitialization = () => {
       </div>
 
       {hasError ? (
-        <ErrorActions onRetry={handleRetry} onSubmitError={handleSubmitError} />
+        <ErrorActions onRetry={startCleanup} onSubmitError={handleSubmitError} />
       ) : (
         // Steps
         <div className="flex flex-col justify-center items-center w-[138px] h-[64px] gap-[8px]">
@@ -134,4 +142,4 @@ const ShelterInitialization = () => {
   );
 };
 
-export default ShelterInitialization;
+export default Cleanup;

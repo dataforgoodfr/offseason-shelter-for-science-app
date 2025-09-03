@@ -1,29 +1,37 @@
 import Store from "electron-store";
 import * as fs from "fs";
+import { BrowserWindow } from "electron";
 import { loggerService } from "./logger";
 
 const store = new Store();
 
-// === DOWNLOADED FILES ===
-interface DownloadedFile {
-    filePath: string;
-    downloadedAt: number;
+class DownloadStoreService {
+  private window: BrowserWindow | null = null;
+
+  setWindow(window: BrowserWindow) {
+    this.window = window;
   }
-  
-  interface DownloadedFilesStore {
-    [filePath: string]: DownloadedFile;
+
+  private sendCleanupFilesSuccess() {
+    if (this.window) {
+      this.window.webContents.send('cleanup:files-success');
+    }
   }
-  
-  // Retrieve all downloaded files from DB
-  export function getDownloadedFiles(): DownloadedFilesStore {
+
+  private sendCleanupError(error: string) {
+    if (this.window) {
+      this.window.webContents.send('cleanup:error', { error });
+    }
+  }
+
+  // === DOWNLOADED FILES ===
+  getDownloadedFiles(): DownloadedFilesStore {
     return store.get("downloadedFiles", {}) as DownloadedFilesStore;
   }
   
   // Add a downloaded file path in DB
-  export function addDownloadedFile(
-    filePath: string
-  ): void {
-    const downloadedFiles = getDownloadedFiles();
+  addDownloadedFile(filePath: string): void {
+    const downloadedFiles = this.getDownloadedFiles();
     
     downloadedFiles[filePath] = {
       filePath,
@@ -35,15 +43,18 @@ interface DownloadedFile {
   }
   
   // Delete all downloaded files in a directory
-  export function cleanupDownloadedFiles(directoryPath: string): {
+  async cleanupDownloadedFiles(directoryPath: string): Promise<{
     deletedFiles: string[];
     errors: string[];
-  } {
-    const downloadedFiles = getDownloadedFiles();
+  }> {
+    const downloadedFiles = this.getDownloadedFiles();
     const deletedFiles: string[] = [];
     const errors: string[] = [];
     
     loggerService.info(`Starting cleanup of downloaded files...`);
+
+    // Start time measurement
+    const startTime = Date.now();
     
     // For all downloaded files
     Object.values(downloadedFiles).forEach((fileInfo) => {
@@ -55,9 +66,9 @@ interface DownloadedFile {
             // Delete the file
             fs.unlinkSync(fileInfo.filePath);
             deletedFiles.push(fileInfo.filePath);
-            loggerService.info(`Deleted: ${fileInfo.filePath}`);
+            console.log(`Deleted: ${fileInfo.filePath}`);
           } else {
-            loggerService.warn(`File not found: ${fileInfo.filePath}`);
+            console.log(`File not found: ${fileInfo.filePath}`);
           }
           
           // Delete the file from the database
@@ -70,11 +81,41 @@ interface DownloadedFile {
         }
       }
     });
+
+    // End time measurement
+    const endTime = Date.now();
+    const duration = (endTime - startTime) / 1000;
+    
+    // If the cleanup took less than 2 seconds, wait 2 seconds for UX
+    if (duration < 2) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
     
     // Update the store
     store.set("downloadedFiles", downloadedFiles);
     
     loggerService.info(`Cleanup completed. Deleted: ${deletedFiles.length}, Errors: ${errors.length}`);
     
+    // Send IPC events based on cleanup result
+    if (errors.length > 0) {
+      this.sendCleanupError(`Cleanup completed with ${errors.length} errors`);
+    } else {
+      this.sendCleanupFilesSuccess();
+    }
+    
     return { deletedFiles, errors };
   }
+}
+
+// === INTERFACES ===
+interface DownloadedFile {
+  filePath: string;
+  downloadedAt: number;
+}
+
+interface DownloadedFilesStore {
+  [filePath: string]: DownloadedFile;
+}
+
+// === SINGLETON INSTANCE ===
+export const downloadStoreService = new DownloadStoreService();

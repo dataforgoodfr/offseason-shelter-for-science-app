@@ -116,6 +116,16 @@ const API = {
 
   // Window height control
   expandMainWindowHeight: (isExpanded: boolean) => ipcRenderer.invoke('window:expand-height', isExpanded),
+
+  // Cleanup event listeners
+  onCleanupFilesSuccess: (callback: () => void) => {
+    ipcRenderer.on('cleanup:files-success', () => callback())
+    return () => ipcRenderer.removeAllListeners('cleanup:files-success')
+  },
+  onCleanupError: (callback: (data: { error: string }) => void) => {
+    ipcRenderer.on('cleanup:error', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('cleanup:error')
+  },
 }
 
 contextBridge.exposeInMainWorld('App', API)
