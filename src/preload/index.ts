@@ -116,6 +116,7 @@ const API = {
 
   // Window height control
   expandMainWindowHeight: (isExpanded: boolean) => ipcRenderer.invoke('window:expand-height', isExpanded),
+  setWindowHeight: (height: number) => ipcRenderer.invoke('window:set-height', height),
   
   // Window control methods
   minimize: () => ipcRenderer.invoke('window:minimize'),

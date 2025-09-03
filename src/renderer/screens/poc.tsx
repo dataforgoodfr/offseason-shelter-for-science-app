@@ -51,8 +51,6 @@ export function MainScreen() {
     const newState = !showStorageSelector;
     setShowStorageSelector(newState);
 
-    // Resize window based on storage selector state
-    window.App.expandMainWindowHeight(newState);
   }, [showStorageSelector]);
 
   // Setup IPC event listeners for init state management
@@ -83,6 +81,21 @@ export function MainScreen() {
       cleanupError();
     };
   }, [handleInitializationComplete]);
+
+  // Resize window autom
+  useEffect(() => {
+    const adjustWindowSize = async () => {
+      await new Promise(resolve => setTimeout(resolve, 50)); // Attendre le render
+
+      const container = document.querySelector('.s4s-container');
+      if (container) {
+        const neededHeight = container.scrollHeight;
+        await window.App.setWindowHeight(neededHeight);
+      }
+    };
+
+    adjustWindowSize();
+  }, [showStorageSelector, selectedPath]);
 
   const handleSelectFolder = async () => {
     try {
@@ -147,7 +160,6 @@ export function MainScreen() {
 
     // Hide storage selector and resize window
     setShowStorageSelector(false);
-    window.App.expandMainWindowHeight(false);
 
     try {
       const result = await App.startInitialization(selectedPath);

@@ -146,7 +146,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
   html,
   body {
-    height: 100vh;
     user-select: none;
     scroll-behavior: smooth;
     -webkit-app-region: no-drag;
