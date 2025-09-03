@@ -64,7 +64,7 @@ export class InitializationService {
         this.sendStateUpdate('initializing', false);
         this.sendStateUpdate('running', true);
 
-        loggerService.info('Initialization completed successfully', { freeSpaceGb: Math.round(freeBytes / GIGA_BYTES) });
+        loggerService.info('Initialization completed successfully');
 
         return { success: true, freeBytes };
       } else {
@@ -108,13 +108,13 @@ export class InitializationService {
       const freeBytes = await this.getFreeSpace(folderPath);
 
       // Simulate processing delay for UX
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       if (freeBytes > 0) {
         this.sendStepStatusUpdate('folder', 'success');
         
         // Additional delay for better UX
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 800));
         
         return freeBytes;
       } else {

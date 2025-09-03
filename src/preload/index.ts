@@ -122,6 +122,16 @@ const API = {
   close: () => ipcRenderer.invoke('window:close'),
   startDragging: () => ipcRenderer.invoke('window:start-dragging'),
   moveWindow: (deltaX: number, deltaY: number) => ipcRenderer.invoke('window:move', deltaX, deltaY),
+
+  // Cleanup event listeners
+  onCleanupFilesSuccess: (callback: () => void) => {
+    ipcRenderer.on('cleanup:files-success', () => callback())
+    return () => ipcRenderer.removeAllListeners('cleanup:files-success')
+  },
+  onCleanupError: (callback: (data: { error: string }) => void) => {
+    ipcRenderer.on('cleanup:error', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('cleanup:error')
+  },
 }
 
 contextBridge.exposeInMainWorld('App', API)
