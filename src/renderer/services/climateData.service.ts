@@ -2,53 +2,54 @@ import { Asset, DispatchRequestPayload, DispatchResponse, DownloadProgressCallba
 import webTorrentService from './webtorrent.service'
 import { logger } from 'renderer/lib/logger'
 import { truncateMagnetLink } from 'renderer/lib/torrent'
+import { MEGA_BYTES } from 'lib/electron-app/utils/units'
+import { config } from 'config'
 
-class ClimateDataService {
-  private readonly API_BASE_URL = 'https://us-climate-data-dispatcher.services.dataforgood.fr'
-  
+class ClimateDataService { 
   /**
    * Appel à l'API pour récupérer la liste des fichiers à télécharger
    */
   async fetchDownloadTasks(payload: DispatchRequestPayload): Promise<DispatchResponse> {
     try {
-      // console.info('Appel API dispatch avec payload:', payload)
-      const response = await window.App.fetchClimateData(`${this.API_BASE_URL}/dispatch`, {
+      logger.debug("[RESCUE API] Fetching download tasks");
+      // @todo renderer should not define the route (issue #70)
+      const response = await window.App.rescueApiCall("/dispatch", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
       })
-
+      logger.debug("[RESCUE API] Download tasks response", { response });
       if (!response.success) {
         throw new Error(`API Error: ${response.error || 'Unknown error'}`)
       }
 
       const data: DispatchResponse = response.data
-      // consoleponse API reçue:', data)
       return data
     } catch (error) {
-      // consolerreur lors de l\'appel API:', error)
       throw error
     }
   }
 
   async sendStatusUpdate(payload: StatusUpdatePayload): Promise<void> {
     try {
-      const response = await window.App.fetchClimateData(`${this.API_BASE_URL}/rescues`, {
-        method: 'PUT',
+      logger.debug("[RESCUE API] Sending file status update", payload);
+      // @todo renderer should not define the route (issue #70)
+      const response = await window.App.rescueApiCall("/assets-downloaded", {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
       })
-
       if (!response.success) {
         throw new Error(`Status Update Error: ${response.error || 'Unknown error'}`)
       }
-
-    } catch (error) {
-      // console.error('Erreur lors de l\'envoi du status update:', error)
+      logger.debug("[RESCUE API] File status update response", { response });
+    } catch (error: any) {
+      logger.error("[RESCUE API] Status update error", { error: error.message, details: error.errorDetails });
+      console.error('Erreur lors de l\'envoi du status update:', error)
     }
   }
 
@@ -58,22 +59,31 @@ class ClimateDataService {
 
   /**
    * Télécharge un fichier via HTTP et crée son magnet link
+   * broija 2025/09/03 @todo download logic should be moved to the main process
    */
   private async downloadHttpFile(
     asset: Asset,
     downloadPath: string
-  ): Promise<{ success: boolean; magnetLink?: string; error?: string }> {
+  ): Promise<{ success: boolean; filePath?: string; magnetLink?: string; fileSize?: number; error?: string }> {
     try {
-      const result = await window.App.downloadFile(asset.url, downloadPath, asset.name)
+      /** broija 2025/09/03 @todo asset file name is irrelevant most of the time.
+       * It can even lead to collisions with other files in the same directory.
+       * Ignoring it for now. */
+      const downloadResult = await window.App.downloadFile(
+        asset.url,
+        downloadPath,
+        undefined,
+        asset.asset_id?.toString()
+      );
       
-      if (!result.success || !result.filePath) {
-        return { success: false, error: result.error || 'Download failed' }
+      if (!downloadResult.success || !downloadResult.filePath) {
+        return { success: false, error: downloadResult.error || 'Download failed' }
       }
 
       // Création du magnet link
       try {
         const seedingResult = await webTorrentService.saveFileForSeeding(
-          result.filePath,
+          downloadResult.filePath,
           asset.name,
           {
             onSeedingStarted: ({ magnetURI }) => {
@@ -90,7 +100,12 @@ class ClimateDataService {
           return { success: true, error: seedingResult.error }
         }
 
-        return { success: true, magnetLink: seedingResult.magnetURI }
+        return {
+          success: true,
+          magnetLink: seedingResult.magnetURI,
+          ...(downloadResult.filePath && { filePath: downloadResult.filePath }),
+          ...(downloadResult.fileSize && { fileSize: downloadResult.fileSize / MEGA_BYTES })
+        };
       } catch (seedingError: any) {
         console.error(`Erreur seeding pour ${asset.name}:`, seedingError)
         return { success: true, error: seedingError?.message || 'Seeding failed' }
@@ -236,7 +251,7 @@ class ClimateDataService {
       asset.status = 'DOWNLOADING'
 
       try {
-        let result: { success: boolean; magnetLink?: string; error?: string }
+        let result: { success: boolean; filePath?: string; magnetLink?: string; fileSize?: number; error?: string }
         
         // Nettoyage du nom du fichier
         asset.name = asset.name.replace(/[\s\/\\:*?"<>|]/g, '_');
@@ -252,25 +267,32 @@ class ClimateDataService {
           // Envoi du magnetLink au dispatcher
           if (result.success) {
 
-            logger.info('File downloaded', { name: asset.name});
+            logger.info(
+              'File downloaded', {
+                ...(asset.name && { name: asset.name }),
+                ...(result.filePath && { filePath: result.filePath }),
+              });
 
             asset.status = 'SUCCESS'
             if (result.magnetLink) {
-              asset.magnet = result.magnetLink
+              asset.magnet_link = result.magnetLink;
+            }
+            if (result.fileSize) {
+              asset.size_mb = result.fileSize / MEGA_BYTES;
             }
 
             try {
-              if (asset.magnet) {
+              if (asset.magnet_link) {
               logger.info('Sending magnet link to rescue API', {
                 name: asset.name,
-                magnet: truncateMagnetLink(asset.magnet)
+                magnet: truncateMagnetLink(asset.magnet_link)
                 })
               } else {
                 logger.info('Sending file status to rescue API', { name: asset.name })
               }
 
               await this.sendStatusUpdate({
-                rescuer_id: 154562, 
+                rescuer_id: 1,
                 message: "Mise à jour de l'état",
                 assets: [asset] 
               })

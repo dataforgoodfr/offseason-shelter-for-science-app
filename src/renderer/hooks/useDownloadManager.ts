@@ -46,7 +46,7 @@ export function useDownloadManager() : DownloadManager {
         description: "Automated data rescue system",
         free_space_gb: freeSpace / GIGA_BYTES,
         node_id: "node_" + Date.now(),
-        rescuer_id: 154562
+        rescuer_id: 1
       };
 
       const callbacks: DownloadProgressCallback = {

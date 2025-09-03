@@ -42,7 +42,7 @@ export default function LoadingBars({
           description: "Automated data rescue system",
           free_space_gb: freeSpaceGb,
           node_id: "node_" + Date.now(),
-          rescuer_id: 154562
+          rescuer_id: 1
         };
 
         const callbacks: DownloadProgressCallback = {

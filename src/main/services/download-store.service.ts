@@ -39,7 +39,7 @@ class DownloadStoreService {
     };
     
     store.set("downloadedFiles", downloadedFiles);
-    console.log(`📁 Added downloaded file to DB: ${filePath}`);
+    console.log(`Added downloaded file to DB: ${filePath}`);
   }
   
   // Delete all downloaded files in a directory

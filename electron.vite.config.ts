@@ -55,6 +55,7 @@ export default defineConfig({
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
       'process.platform': JSON.stringify(process.platform),
+      'process.env.API_BASE_URL': JSON.stringify(process.env.API_BASE_URL),
     },
 
     server: {
