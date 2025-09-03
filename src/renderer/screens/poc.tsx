@@ -90,7 +90,8 @@ export function MainScreen() {
       const container = document.querySelector('.s4s-container');
       if (container) {
         const neededHeight = container.scrollHeight;
-        await window.App.setWindowHeight(neededHeight);
+        // Ajout d'une sécurité
+        await window.App.setWindowHeight(neededHeight + 20);
       }
     };
 
