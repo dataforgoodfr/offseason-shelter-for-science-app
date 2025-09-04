@@ -325,16 +325,7 @@ export function MainScreen() {
           <>
             <div className="pt-4">
               {!isRunning ? (
-                <>
-                  {!showStorageSelector ? (
-                    <WelcomeComponent />
-                  ) : (
-                    <StorageSelector
-                      onStorageSelected={handleStorageSelected}
-                      defaultSelection={allocatedStorage}
-                    />
-                  )}
-                </>
+                <WelcomeComponent />
               ) : (
                 <LoadingBars
                   progress={downloadManager.progress}
@@ -378,7 +369,7 @@ export function MainScreen() {
             {!isRunning && !isHosting && (
               <>
                 {/* Storage configuration button */}
-                {/* <button
+                <button
                   className="w-full min-h-[35px] max-h-[35px] h-[35px] flex items-center justify-between 
                  px-4 py-0 rounded-[20px] border border-white/30 
                  hover:border-white/50 hover:bg-white/5 
@@ -392,7 +383,11 @@ export function MainScreen() {
                   <span className="text-akz-gro text-xs text-white/60">
                     {showStorageSelector ? "Close" : "Configure"}
                   </span>
-                </button> */}
+                </button>
+                {showStorageSelector && <StorageSelector
+                  onStorageSelected={handleStorageSelected}
+                  defaultSelection={allocatedStorage}
+                />}
 
                 {/* Start hosting button */}
                 <button

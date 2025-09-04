@@ -3,10 +3,10 @@ interface NoConnexionProps {
 }
 const flag = new URL('../assets/icons/flag.svg', import.meta.url).href;
 const NoConnexion: React.FC<NoConnexionProps> = ({ onSubmitError }) => {
-  
+
   return (
     <div
-      className="w-[188px] h-[96px] flex flex-col items-center gap-6 py-4 mb-[39px]"
+      className="w-full h-[96px] flex flex-col items-center gap-6 py-4 mb-[39px]"
       style={{ transform: "rotate(0deg)" }}
     >
 
@@ -30,15 +30,15 @@ const NoConnexion: React.FC<NoConnexionProps> = ({ onSubmitError }) => {
             border: '2px solid #D50003'
           }}
         >
-          <span 
+          <span
             className="text-sm font-normal leading-none tracking-normal rotate-0 opacity-100"
             style={{
               fontFamily: 'Akzidenz-Grotesk Pro'
             }}
           >Submit error</span>
-          <img 
-            src={flag} 
-            alt="flag" 
+          <img
+            src={flag}
+            alt="flag"
             className="w-3 h-3 rotate-0 opacity-100"
           />
         </button>

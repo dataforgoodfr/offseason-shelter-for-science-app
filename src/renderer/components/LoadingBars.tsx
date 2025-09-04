@@ -9,7 +9,7 @@ interface LoadingBarsProps {
 }
 
 /** @deprecated 2025/08/27 : this component is not used anymore, it's replaced by the useDownloadManager hook and LoadingBarsDisplay component */
-export default function LoadingBars({ 
+export default function LoadingBars({
   downloadPath,
   freeSpaceGb = 100,
 }: LoadingBarsProps) {
@@ -46,7 +46,7 @@ export default function LoadingBars({
 
         const callbacks: DownloadProgressCallback = {
           onProgress: (currentProgress: number, currentIndex: number, total: number) => {
-            if (isCancelled) return; 
+            if (isCancelled) return;
 
             // Calcul de la progression pour les barres
             if (total > 0) {
@@ -57,25 +57,25 @@ export default function LoadingBars({
           },
 
           onStatusChange: (status) => {
-            if (isCancelled) return; 
-            
+            if (isCancelled) return;
+
             setCurrentStatus(status);
           },
 
           onFileComplete: (asset: Asset, magnetLink?: string) => {
-            if (isCancelled) return; 
-            
+            if (isCancelled) return;
+
             console.info(`File completed: ${asset.name}${magnetLink ? ' with magnet' : ''}`);
             setCompletedAssets(prev => [...prev, asset]);
           },
 
           onComplete: (assets: Asset[]) => {
-            if (isCancelled) return; 
-            
+            if (isCancelled) return;
+
             setProgress(totalBars);
             setCurrentStatus('uploading');
             setCompletedAssets(assets);
-            
+
             // Log des résultats
             const successCount = assets.filter(a => a.status === 'SUCCESS').length;
             const abortedCount = assets.filter(a => a.status === 'ABORTED').length;
@@ -83,8 +83,8 @@ export default function LoadingBars({
           },
 
           onError: (errorMessage: string, asset?: Asset) => {
-            if (isCancelled) return; 
-            
+            if (isCancelled) return;
+
             console.error(`Download error: ${errorMessage}`, asset);
             setError(errorMessage);
           }
@@ -94,7 +94,7 @@ export default function LoadingBars({
         await climateDataService.fetchAndDownload(payload, downloadPath, callbacks);
 
       } catch (error: any) {
-        if (!isCancelled) { 
+        if (!isCancelled) {
           console.error(' Erreur lors du processus de téléchargement:', error);
           setError(error?.message || 'Erreur inconnue');
         }
@@ -118,13 +118,13 @@ export default function LoadingBars({
 
   return (
     <>
-    {/* le temps de trouve le probleme de ***dupplicate torent added*** */}
+      {/* le temps de trouve le probleme de ***dupplicate torent added*** */}
       {/* {error ? ( */}
       {false ? (
 
         <NoConnexion onSubmitError={handleSubmitError} />
       ) : (
-        <div className="w-[188px] h-[96px] flex flex-col items-center gap-6 py-4 mb-[39px]">
+        <div className="w-full h-[96px] flex flex-col items-center gap-6 py-4 mb-[39px]">
           <div className="w-[166px] h-8 flex justify-center items-center">
             <span
               className="uppercase text-white font-normal text-[46px] leading-none tracking-[-0.1em]"
@@ -137,7 +137,7 @@ export default function LoadingBars({
             </span>
           </div>
 
-          <div className="w-[188px] h-2 flex items-center justify-center gap-2">
+          <div className="w-full h-2 flex items-center justify-center gap-2">
             <span
               className="h-2 uppercase text-white font-normal text-[11px] tracking-[0.1em] leading-none flex items-center justify-center whitespace-nowrap"
               style={{

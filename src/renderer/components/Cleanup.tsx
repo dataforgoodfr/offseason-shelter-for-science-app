@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import ErrorActions from "./ErrorActions";
 import { InitStatus, InitStep } from "renderer/lib/types";
-import { 
+import {
   useCleanup,
   STEP_STATUS_INPROGRESS,
   STEP_STATUS_SUCCESS,
@@ -48,17 +48,17 @@ const Cleanup = ({ onCleanupComplete }: CleanupProps) => {
     switch (status) {
       case STEP_STATUS_INPROGRESS:
         return (
-          <img 
+          <img
             src={processingIconUrl}
-            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" 
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin"
             alt="Processing"
           />
         );
       case STEP_STATUS_SUCCESS:
         return (
-          <img 
-            src={check_markIconUrl} 
-            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px]" 
+          <img
+            src={check_markIconUrl}
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px]"
             alt="Success"
           />
         );
@@ -66,9 +66,9 @@ const Cleanup = ({ onCleanupComplete }: CleanupProps) => {
         return <div className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] rounded-full bg-red-500" />;
       default:
         return (
-          <img 
+          <img
             src={processingIconUrl}
-            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" 
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin"
             alt="Processing"
           />
         );
@@ -85,7 +85,7 @@ const Cleanup = ({ onCleanupComplete }: CleanupProps) => {
   };
 
   return (
-    <div className="w-[188px] h-[190px] gap-[48px] pt-[16px] flex flex-col items-center">
+    <div className="w-full h-[190px] gap-[48px] pt-[16px] flex flex-col items-center">
 
       <div
         className="w-[166px] h-[36px] flex items-center justify-center opacity-100"
@@ -100,14 +100,14 @@ const Cleanup = ({ onCleanupComplete }: CleanupProps) => {
           }}
         >
           {hasError ? ("Error, unable to cleanup shelter") :
-          (
-            <>
-              Starting cleanup of
-              <br />
-              your shelter...
-            </>
-          )}
-          
+            (
+              <>
+                Starting cleanup of
+                <br />
+                your shelter...
+              </>
+            )}
+
         </span>
       </div>
 
@@ -137,7 +137,7 @@ const Cleanup = ({ onCleanupComplete }: CleanupProps) => {
           ))}
         </div>
       )}
-    
+
     </div>
   );
 };

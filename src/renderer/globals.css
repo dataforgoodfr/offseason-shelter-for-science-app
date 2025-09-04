@@ -214,7 +214,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
 #path-selection-frame {
   display: flex;
-  width: 188px;
+  width: full;
   height: 35px;
   padding: 8px 12px;
   justify-content: space-between;
