@@ -1,14 +1,18 @@
 import { BrowserWindow, ipcMain } from 'electron'
 import { LogSource, LOG_SOURCE_MAIN, LOG_SOURCE_RENDERER } from 'lib/electron-app/types/logger'
 
+export type LogLevel = 'info' | 'warn' | 'error' | 'debug'
+
 export interface LogEntry {
   id: string
   timestamp: Date
-  level: 'info' | 'warn' | 'error' | 'debug'
+  level: LogLevel
   source: LogSource
   message: string
   data?: any
 }
+
+const ACCEPTED_LOG_LEVELS: LogLevel[] = process.env.NODE_ENV === 'development' ? ['info', 'warn', 'error', 'debug'] : ['info', 'warn', 'error'];
 
 class LoggerService {
   private logs: LogEntry[] = []
@@ -44,6 +48,10 @@ class LoggerService {
   }
 
   addLog(logData: Omit<LogEntry, 'id' | 'timestamp'>) {
+    if (!ACCEPTED_LOG_LEVELS.includes(logData.level)) {
+      return
+    }
+
     const log: LogEntry = {
       ...logData,
       id: this.generateId(),

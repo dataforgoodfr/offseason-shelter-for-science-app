@@ -3,7 +3,6 @@ import webTorrentService from './webtorrent.service'
 import { logger } from 'renderer/lib/logger'
 import { truncateMagnetLink } from 'renderer/lib/torrent'
 import { MEGA_BYTES } from 'lib/electron-app/utils/units'
-import { config } from 'config'
 
 class ClimateDataService { 
   /**
@@ -11,7 +10,7 @@ class ClimateDataService {
    */
   async fetchDownloadTasks(payload: DispatchRequestPayload): Promise<DispatchResponse> {
     try {
-      logger.debug("[RESCUE API] Fetching download tasks");
+      logger.debug("[RESCUE API] Fetching download tasks", payload);
       // @todo renderer should not define the route (issue #70)
       const response = await window.App.rescueApiCall("/dispatch", {
         method: 'POST',
