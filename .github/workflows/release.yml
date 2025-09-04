@@ -43,6 +43,8 @@ jobs:
 
       - name: Release Electron app
         uses: daltonmenezes/action-electron-builder@v1.0.1
+        env:
+          API_BASE_URL: "https://us-climate-data-dispatcher.services.dataforgood.fr"
         with:
           package_manager: "pnpm"
           # GitHub token, automatically provided to the action

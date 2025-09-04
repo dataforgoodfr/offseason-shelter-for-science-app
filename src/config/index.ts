@@ -12,13 +12,7 @@ export interface AppConfig {
 
 // Utility function to get the API base URL
 function getApiBaseUrl(): string {
-  const isProduction = process.env.NODE_ENV === "production";
-  
-  if (isProduction) {
-    return "https://us-climate-data-dispatcher.services.dataforgood.fr";
-  }
-  
-  // Dev : return .env API_BASE_URL or default value
+  // return env var API_BASE_URL or default value
   return process.env.API_BASE_URL || "http://localhost:3000";
 }
 
