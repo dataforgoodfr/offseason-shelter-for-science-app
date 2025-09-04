@@ -264,7 +264,7 @@ export function MainScreen() {
               <img
                 src={s4sLogoUrl}
                 alt="S4S Logo"
-                className="w-[188px] h-[20px] pointer-events-none"
+                className="w-full h-[20px] pointer-events-none"
               />
             </div>
 
@@ -378,7 +378,7 @@ export function MainScreen() {
             {!isRunning && !isHosting && (
               <>
                 {/* Storage configuration button */}
-                <button
+                {/* <button
                   className="w-full min-h-[35px] max-h-[35px] h-[35px] flex items-center justify-between 
                  px-4 py-0 rounded-[20px] border border-white/30 
                  hover:border-white/50 hover:bg-white/5 
@@ -392,11 +392,11 @@ export function MainScreen() {
                   <span className="text-akz-gro text-xs text-white/60">
                     {showStorageSelector ? "Close" : "Configure"}
                   </span>
-                </button>
+                </button> */}
 
                 {/* Start hosting button */}
                 <button
-                  className="group w-[188px] h-12 flex items-center
+                  className="group w-full h-12 flex items-center
                     justify-between opacity-100 rounded-[40px] px-5 py-4
                     bg-black shadow-lg relative
                     hover:bg-gradient-to-t from-[#C4FFEA] to-[#FBDF9C]
@@ -447,7 +447,7 @@ export function MainScreen() {
             className="text-[9px] text-white font-normal uppercase tracking-[0.1em] leading-[100%] align-middle"
             style={{ fontFamily: "Akzidenz-Grotesk Pro, sans-serif", whiteSpace: "normal" }}
           >
-            made with <img src={heartIconUrl} alt="coeur" className="w-4 h-4 inline-block align-middle" /> by the data for good community
+            made with <img src={heartIconUrl} alt="coeur" className="w-4 h-4 inline-block align-middle -translate-y-[1px]" /> by the data for good community
           </span>
 
         </div>

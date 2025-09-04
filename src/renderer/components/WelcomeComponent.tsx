@@ -16,7 +16,7 @@ export default function WelcomeComponent() {
           fontFamily: 'Akzidenz-Grotesk Pro',
         }}
       >
-        Choose where you'll host the data:
+        Choose where you'll host the data :
       </span>
     </div>
   );
