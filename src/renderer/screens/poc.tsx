@@ -110,6 +110,11 @@ export function MainScreen() {
   useEffect(() => {
     // check the console on dev tools
     App.sayHelloFromBridge();
+    
+    if (process.platform === 'win32') {
+      // Fix window sizing issue on Windows
+      window.App.expandMainWindowHeight(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -123,6 +128,9 @@ export function MainScreen() {
   }, []);
 
   function shortenPathForDisplay(path: string) {
+    if (process.platform === 'win32') {
+      return '...\\' + path.split('\\').slice(-1)[0];
+    }
     return '.../' + path.split('/').slice(-1)[0];
   }
 
