@@ -11,10 +11,13 @@ interface DownloadProgress {
 interface DownloadResult {
   success: boolean;
   filePath?: string;
+  fileSize?: number;
   error?: string;
 }
 
 import { MEGA_BYTES } from "../../lib/electron-app/utils/units"
+import { loggerService } from "./logger";
+import { logger } from "renderer/lib/logger";
 
 /**
  * Downloads a file from a URL and saves it to the specified directory
@@ -28,8 +31,11 @@ export async function downloadFile(
   url: string,
   downloadPath: string,
   fileName?: string,
+  defaultFileNamePrefix?: string,
   onProgress?: (progress: DownloadProgress) => void
 ): Promise<DownloadResult> {
+  let filePath: string | undefined;
+
   try {
     if (!downloadPath) {
       throw new Error("Download path is required");
@@ -39,14 +45,8 @@ export async function downloadFile(
     if (!isValidUrl(url)) {
       throw new Error("Invalid URL");
     }
-
-    fileName = fileName || `download_${Date.now()}`;
-
-    // Build complete file path
-    const filePath = path.join(downloadPath, fileName);
-    
-    console.log(`🚀 Starting download from: ${url}`);
-    console.log(`📁 Saving to: ${filePath}`);
+   
+    console.log(`Starting download from: ${url}`);
 
     // Perform HTTP request
     const response = await fetch(url);
@@ -54,6 +54,48 @@ export async function downloadFile(
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    // File name is not provided
+    if (!fileName) {
+      let guessedFileName = null;
+
+      // Guessing it from Content-Disposition header
+      const contentDisposition = response.headers.get("content-disposition");
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^;\r\n]+)/);
+        if (fileNameMatch) {
+          guessedFileName = fileNameMatch[1];
+        }
+      }
+
+      if (!guessedFileName) {
+        // Retrieving filename from URL, removing query parameters if any
+        guessedFileName = url.split("/").pop()?.split("?")[0];
+      }
+
+      if (guessedFileName) {
+        // Checking if file already exists
+        const guessedFilePath = path.join(downloadPath, guessedFileName);
+        if (!fs.existsSync(guessedFilePath)) {
+          fileName = guessedFileName;
+        } else if (defaultFileNamePrefix) {
+          fileName = `${defaultFileNamePrefix}_${guessedFileName}`;
+        }
+      }
+
+      if (!fileName) {
+        fileName = `${Date.now()}`; // Default filename
+        
+        if (defaultFileNamePrefix) {
+          fileName = `${defaultFileNamePrefix}_${fileName}`;
+        }
+      }
+    }
+
+    // Build complete file path
+    filePath = path.join(downloadPath, fileName);
+
+    console.log(`Saving to: ${filePath}`);
 
     // Get total file size
     const totalSize = Number.parseInt(
@@ -114,13 +156,22 @@ export async function downloadFile(
 
     // Add file to downloaded files store
     downloadStoreService.addDownloadedFile(filePath);
-    console.log(`📝 Added to download store: ${filePath}`);
 
-    return {
+    let result: DownloadResult = {
       success: true,
-      filePath
+      filePath: filePath
     };
 
+    // We do not trust totalSize, fetching the file size from the file
+    const fileSize = fs.statSync(filePath).size;
+    if (fileSize) {
+      result.fileSize = fileSize;
+    } else if (totalSize) {
+      result.fileSize = totalSize;
+    }
+    result.fileSize = fileSize ? fileSize : totalSize;
+
+    return result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`❌ Download failed: ${errorMessage}`);
