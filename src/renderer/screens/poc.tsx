@@ -128,6 +128,9 @@ export function MainScreen() {
   }, []);
 
   function shortenPathForDisplay(path: string) {
+    if (process.platform === 'win32') {
+      return '...\\' + path.split('\\').slice(-1)[0];
+    }
     return '.../' + path.split('/').slice(-1)[0];
   }
 
