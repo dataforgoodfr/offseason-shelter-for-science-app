@@ -65,8 +65,8 @@ const API = {
     ipcRenderer.invoke('cleanup-downloaded-files', directoryPath),
 
   // Dummy downloader
-  downloadFile: (url: string, downloadPath: string, filename: string) =>
-    ipcRenderer.invoke('download-file', url, downloadPath, filename),
+  downloadFile: (url: string, downloadPath: string, filename?: string, defaultFileNamePrefix?: string) =>
+    ipcRenderer.invoke('download-file', url, downloadPath, filename, defaultFileNamePrefix),
   
 
    // Obtenir l'espace disque disponible (libre) pour un chemin donné
@@ -86,8 +86,8 @@ const API = {
   getBandwidthAllocation: () => ipcRenderer.invoke('get-bandwidth-allocation'),
 
  // Nouvelles méthodes pour éviter CORS
-  fetchClimateData: (url: string, options: any) => 
-    ipcRenderer.invoke('fetch-climate-data', url, options),
+  rescueApiCall: (route: string, options: any) => 
+    ipcRenderer.invoke('rescue-api:call', route, options),
 
   checkFileExists: (filePath: string) => 
     ipcRenderer.invoke('check-file-exists', filePath),

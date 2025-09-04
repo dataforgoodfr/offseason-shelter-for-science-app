@@ -10,20 +10,19 @@ export interface DispatchRequestPayload {
   name: string
   description: string
   free_space_gb: number
-  node_id: string
-  rescuer_id: number
+  node_id: string // broija 2025/09/04 : should probably be a number, named rescuer_id
 }
 
 export interface Asset {
-  asset_id: string
-  ds_id: string
+  ds_id: number
+  res_id: number
+  asset_id?: number
   name: string
   path: string
   priority: number
-  res_id: string
   size_mb: number
   url: string
-  magnet?: string
+  magnet_link?: string
   status?: 'SUCCESS' | 'ABORTED' | 'DOWNLOADING'
 }
 

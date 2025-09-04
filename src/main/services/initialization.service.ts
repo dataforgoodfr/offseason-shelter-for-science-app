@@ -140,7 +140,9 @@ export class InitializationService {
 
       if (process.platform === 'win32') {
         command = 'dir';
-        args = [folderPath, '/-c'];
+        // Extract the drive letter from the folder path
+        const driveLetter = folderPath.charAt(0);
+        args = [driveLetter + ':'];
       } else {
         command = 'df';
         args = ['-h', folderPath];
@@ -157,9 +159,20 @@ export class InitializationService {
         console.log('Free space command output', { output });
 
         if (process.platform === 'win32') {
-          const freeMatch = output.match(/(\d+)\s+bytes\s+free/i);
+          // Only the last line indicates the free space
+          const lines = output.trim().split('\n');
+          const lastLine = lines[lines.length - 1];
+          const freeMatch = lastLine.match(/\)\s+(.+\d)\s+([a-z]+)\s+/i);
+
           if (freeMatch) {
-            const freeBytes = parseInt(freeMatch[1], 10);
+            // Keeping only numbers
+            let asciiString = '';
+            for (const char of freeMatch[1]) {
+              if (char >= '0' && char <= '9') {
+                asciiString += char;
+              }
+            }
+            const freeBytes = parseInt(asciiString, 10);
             console.log('Windows free space detected', { freeBytes, freeGB: Math.round(freeBytes / GIGA_BYTES) });
             resolve(freeBytes);
             return;

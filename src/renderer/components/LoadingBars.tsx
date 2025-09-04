@@ -41,8 +41,7 @@ export default function LoadingBars({
           name: "Climate Rescue Node",
           description: "Automated data rescue system",
           free_space_gb: freeSpaceGb,
-          node_id: "node_" + Date.now(),
-          rescuer_id: 154562
+          node_id: "1", // "node_" + Date.now()
         };
 
         const callbacks: DownloadProgressCallback = {

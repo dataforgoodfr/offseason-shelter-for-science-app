@@ -143,7 +143,7 @@ public async startTorrenting(
     await new Promise(resolve => setTimeout(resolve, 3000));
     console.log('Nettoyage terminé, ajout du nouveau torrent');
 
-    logger.debug("Downloading torrent", truncateMagnetLink(torrentID));
+    logger.info("Downloading torrent", truncateMagnetLink(torrentID));
     const torrent = this.client.add(torrentID, {});
     (torrent as any).key = torrentKey;
 

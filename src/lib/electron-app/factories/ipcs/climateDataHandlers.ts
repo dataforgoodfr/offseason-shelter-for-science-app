@@ -1,9 +1,10 @@
+import { config } from 'config';
 import { ipcMain } from 'electron'
 
 export function climateDataHandlers() {
 
     ipcMain.handle('check-file-exists', async (event, filePath: string) => {
-        console.log('🔍 Checking if file exists:', filePath)
+        console.log('Checking if file exists:', filePath)
         try {
             const fs = require('fs').promises;
             await fs.access(filePath);
@@ -15,31 +16,38 @@ export function climateDataHandlers() {
         }
     })
 
-    ipcMain.handle('fetch-climate-data', async (event, url: string, options: any) => {
-    try {
-        console.log('🌐 Main process HTTP call:', url)
-        
-        const response = await fetch(url, {
+    ipcMain.handle('rescue-api:call', async (event, route: string, options: any) => {
+    try {       
+        const response = await fetch(`${config.api.baseURL}${route}`, {
         method: options.method || 'GET',
         headers: options.headers || {},
         body: options.body || undefined,
         })
 
         if (!response.ok) {
-        return {
-            success: false,
-            error: `HTTP ${response.status}: ${response.statusText}`
-        }
+            const body = await response.text();
+            let errorDetails = undefined;
+
+            const bodyJson = JSON.parse(body);
+            if (bodyJson && bodyJson.detail) {
+                errorDetails = bodyJson.detail;
+                console.error('❌ Rescue API error details:', errorDetails)
+            }
+
+            return {
+                success: false,
+                error: `HTTP ${response.status}: ${response.statusText}`,
+            }
         }
 
         const data = await response.json()
-        
+
         return {
         success: true,
         data: data
         }
     } catch (error: any) {
-        console.error('❌ Main process HTTP error:', error)
+        console.error('❌ Rescue API error:', error)
         return {
         success: false,
         error: error?.message || 'Network error'

@@ -62,6 +62,37 @@ pnpm install
 pnpm run dev
 ```
 
+## Windows
+
+Installing prerequisites with PowerShell :
+
+```bash
+winget install OpenJS.NodeJS.LTS
+node --version
+npm --version
+
+npm install -g pnpm
+
+winget install Python.Python.3.11
+
+winget install Microsoft.VisualStudio.2022.BuildTools
+```
+
+If node and npm commands are not recognized, this could help :
+
+```bash
+$env:NODE_INSTALLATION_PATH = "<Path to node installation dir>"
+$env:PNPM_INSTALLATION_PATH = "$env:USERPROFILE\AppData\Roaming\npm" # Since pnpm has been installed globally
+```
+
+Install project dependencies :
+
+```bash
+pnpm install
+```
+
+You may have to open a terminal as administrator to run the previous command, if PowerShell complains about symlink creation permission.
+
 ### Serveur mock-dispatcher
 
 ```bash
