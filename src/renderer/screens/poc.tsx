@@ -15,6 +15,7 @@ const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
 const gearSixUrl = new URL('../assets/icons/gear_six.svg', import.meta.url).href;
 const folderIconUrl = new URL('../assets/icons/path.svg', import.meta.url).href;
 const hostingIconUrl = new URL('../assets/icons/hosting.svg', import.meta.url).href;
+const heartIconUrl = new URL('../assets/icons/heart.svg', import.meta.url).href;
 // The "App" comes from the context bridge in preload/index.ts
 const { App } = window;
 
@@ -439,15 +440,16 @@ export function MainScreen() {
 
         {/* Footer */}
         <div
-          className="w-full h-[32px] flex items-center gap-2 pt-2 opacity-80 justify-center"
+          className="w-full h-[32px] flex items-center text-center gap-2 pt-2 opacity-80 justify-center"
           style={{ transform: "rotate(0deg)" }}
         >
           <span
-            className="text-[9px] text-white font-normal uppercase tracking-[0.1em] leading-[100%] text-center align-middle"
-            style={{ fontFamily: "Akzidenz-Grotesk Pro" }}
+            className="text-[9px] text-white font-normal uppercase tracking-[0.1em] leading-[100%] align-middle"
+            style={{ fontFamily: "Akzidenz-Grotesk Pro, sans-serif", whiteSpace: "normal" }}
           >
-            made with ♡ by the data for good community
+            made with <img src={heartIconUrl} alt="coeur" className="w-4 h-4 inline-block align-middle" /> by the data for good community
           </span>
+
         </div>
       </div >
     </div >
