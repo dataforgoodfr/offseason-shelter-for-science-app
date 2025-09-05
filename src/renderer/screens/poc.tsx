@@ -84,21 +84,10 @@ export function MainScreen() {
     };
   }, [handleInitializationComplete]);
 
-  // Resize window autom
+  // Resize window
   useEffect(() => {
-    const adjustWindowSize = async () => {
-      await new Promise(resolve => setTimeout(resolve, 50)); // Attendre le render
-
-      const container = document.querySelector('.s4s-container');
-      if (container) {
-        const neededHeight = container.scrollHeight;
-        // Ajout d'une sécurité
-        await window.App.setWindowHeight(neededHeight + 20);
-      }
-    };
-
-    adjustWindowSize();
-  }, [showStorageSelector, selectedPath]);
+    window.App.expandMainWindowHeight(showStorageSelector)
+  }, [showStorageSelector]);
 
   const handleSelectFolder = async () => {
     try {
