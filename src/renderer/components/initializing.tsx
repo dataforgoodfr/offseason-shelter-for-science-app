@@ -13,6 +13,7 @@ const processingIconUrl = new URL('../assets/icons/processing.svg', import.meta.
 const check_markIconUrl = new URL('../assets/icons/check_mark.svg', import.meta.url).href;
 
 import { logger } from "renderer/lib/logger";
+import { leadingVariants } from "renderer/tailwind-pattern";
 
 // Props removed - component only displays steps now
 
@@ -84,7 +85,7 @@ const ShelterInitialization = () => {
         style={{ transform: "rotate(0deg)" }}
       >
         <span
-          className="text-white font-medium text-center leading-[100%] tracking-[-0.01em]"
+          className={leadingVariants.title}
           style={{
             fontFamily: "Akzidenz-Grotesk Pro",
             fontSize: "18.57px",

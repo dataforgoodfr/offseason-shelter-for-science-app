@@ -215,8 +215,9 @@ export function MainScreen() {
   }, [isAboutPopupOpen]);
 
   return (
-    <div className="s4s-container relative w-full h-full bg-[hsla(154,29%,38%,1)] p-4 rounded-2xl border-2 border-[#457E65] leading-light"
+    <div className="s4s-container relative w-full bg-[hsla(154,29%,38%,1)] p-4 rounded-2xl border-2 border-[#457E65] leading-light"
       style={{
+        minHeight: WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED,
         backgroundPosition: "top left, 0 0",
         backgroundRepeat: "no-repeat, repeat",
         backgroundSize: `100% ${WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED}px, 100% 100%`

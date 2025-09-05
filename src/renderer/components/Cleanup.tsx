@@ -12,6 +12,7 @@ const processingIconUrl = new URL('../assets/icons/processing.svg', import.meta.
 const check_markIconUrl = new URL('../assets/icons/check_mark.svg', import.meta.url).href;
 
 import { logger } from "renderer/lib/logger";
+import { leadingVariants } from "renderer/tailwind-pattern";
 
 interface CleanupProps {
   onCleanupComplete?: () => void;
@@ -88,11 +89,11 @@ const Cleanup = ({ onCleanupComplete }: CleanupProps) => {
     <div className="w-full h-[190px] gap-[48px] pt-[16px] flex flex-col items-center">
 
       <div
-        className="w-[166px] h-[36px] flex items-center justify-center opacity-100"
+        className="w-full h-[36px] flex items-center justify-center opacity-100"
         style={{ transform: "rotate(0deg)" }}
       >
         <span
-          className="text-white font-bold text-center leading-[100%] tracking-[-0.01em]"
+          className={leadingVariants.title}
           style={{
             fontFamily: "Akzidenz-Grotesk Pro",
             fontSize: "18.57px",
@@ -115,15 +116,15 @@ const Cleanup = ({ onCleanupComplete }: CleanupProps) => {
         <ErrorActions onRetry={startCleanup} onSubmitError={handleSubmitError} />
       ) : (
         // Steps
-        <div className="flex flex-col justify-center items-center w-[138px] h-[64px] gap-[8px]">
+        <div className="flex flex-col justify-center items-center h-[64px] gap-[8px]">
           {steps.map((step: InitStep) => (
-            <div key={step.id} className="w-[136px] h-[16px] flex items-center gap-[8px]">
+            <div key={step.id} className="w-full h-[16px] flex items-center gap-[8px]">
               <div className="text-white">
                 {renderIcon(step.status)}
               </div>
 
               <div
-                className="w-[85px] h-[6px] flex items-center opacity-100 whitespace-nowrap"
+                className="flex items-center opacity-100 whitespace-nowrap"
                 style={{ transform: "rotate(0deg)" }}
               >
                 <span
