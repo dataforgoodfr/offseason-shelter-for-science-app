@@ -215,109 +215,110 @@ export function MainScreen() {
   }, [isAboutPopupOpen]);
 
   return (
-    <div className="s4s-container relative w-full bg-[hsla(154,29%,38%,1)] p-4 rounded-2xl border-2 border-[#457E65] leading-light"
+    <div className="s4s-container relative w-full bg-[hsla(154,29%,38%,1)] p-4 rounded-2xl border-2 border-[#457E65] leading-light flex flex-col"
       style={{
         minHeight: WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED,
         backgroundPosition: "top left, 0 0",
         backgroundRepeat: "no-repeat, repeat",
         backgroundSize: `100% ${WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED}px, 100% 100%`
       }}>
-      <div className="flex flex-col h-full justify-between space-y-4">
-        {/* Header avec zone de déplacement */}
-        <div className="s4s-header">
-          {/* Zone de déplacement - toute la largeur du header */}
-          <div className="flex justify-between items-rigth">
 
+      {/* Header avec zone de déplacement */}
+      <div className="s4s-header flex-shrink-0">
+        {/* Zone de déplacement - toute la largeur du header */}
+        <div className="flex justify-between items-rigth">
+        </div>
+        <div className="flex justify-between items-center">
+          <div
+            className="flex-1 h-full cursor-move flex items-center"
+            onMouseDown={(e) => {
+              if (e.button === 0) { // Clic gauche seulement
+                // Déplacer la fenêtre directement
+                e.preventDefault();
+                const startX = e.clientX;
+                const startY = e.clientY;
+
+                const handleMouseMove = (moveEvent: MouseEvent) => {
+                  const deltaX = moveEvent.clientX - startX;
+                  const deltaY = moveEvent.clientY - startY;
+                  window.App.moveWindow(deltaX, deltaY);
+                };
+
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }
+            }}
+          >
+            <img
+              src={s4sLogoUrl}
+              alt="S4S Logo"
+              className="w-full h-[20px] pointer-events-none"
+            />
           </div>
-          <div className="flex justify-between items-center">
-            <div
-              className="flex-1 h-full cursor-move flex items-center"
-              onMouseDown={(e) => {
-                if (e.button === 0) { // Clic gauche seulement
-                  // Déplacer la fenêtre directement
-                  e.preventDefault();
-                  const startX = e.clientX;
-                  const startY = e.clientY;
 
-                  const handleMouseMove = (moveEvent: MouseEvent) => {
-                    const deltaX = moveEvent.clientX - startX;
-                    const deltaY = moveEvent.clientY - startY;
-                    window.App.moveWindow(deltaX, deltaY);
-                  };
-
-                  const handleMouseUp = () => {
-                    document.removeEventListener('mousemove', handleMouseMove);
-                    document.removeEventListener('mouseup', handleMouseUp);
-                  };
-
-                  document.addEventListener('mousemove', handleMouseMove);
-                  document.addEventListener('mouseup', handleMouseUp);
-                }
-              }}
+          {/* Contrôles à droite */}
+          <div className="flex items-center gap-2">
+            {/* Bouton settings */}
+            <button
+              className="gear-icon w-[16px] h-[16px] cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={toggleAboutPopup}
             >
               <img
-                src={s4sLogoUrl}
-                alt="S4S Logo"
-                className="w-full h-[20px] pointer-events-none"
+                src={gearSixUrl}
+                alt="Gear Six"
+                className="w-full h-full"
               />
-            </div>
-
-            {/* Contrôles à droite */}
-            <div className="flex items-center gap-2">
-              {/* Bouton settings */}
-              <button
-                className="gear-icon w-[16px] h-[16px] cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={toggleAboutPopup}
-              >
-                <img
-                  src={gearSixUrl}
-                  alt="Gear Six"
-                  className="w-full h-full"
-                />
-              </button>
-              {/* Bouton minimize */}
-              <button
-                className="w-4 h-4 rounded-full bg-transparent hover:bg-white/10 transition-colors flex items-center justify-center"
-                onClick={() => window.App.minimize()}
-              >
-                <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20 14H4v-2h16v2z" />
-                </svg>
-              </button>
-              {/* Bouton fermer */}
-              <button
-                className="w-4 h-4 rounded-full bg-transparent hover:bg-white/10 transition-colors flex items-center justify-center"
-                onClick={() => window.App.close()}
-              >
-                <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                </svg>
-              </button>
-            </div>
+            </button>
+            {/* Bouton minimize */}
+            <button
+              className="w-4 h-4 rounded-full bg-transparent hover:bg-white/10 transition-colors flex items-center justify-center"
+              onClick={() => window.App.minimize()}
+            >
+              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20 14H4v-2h16v2z" />
+              </svg>
+            </button>
+            {/* Bouton fermer */}
+            <button
+              className="w-4 h-4 rounded-full bg-transparent hover:bg-white/10 transition-colors flex items-center justify-center"
+              onClick={() => window.App.close()}
+            >
+              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+              </svg>
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* About Popup */}
-        {isAboutPopupOpen && (
-          <AboutPopup
-            onStopHosting={() => {
-              handleStopHosting();
-              setIsAboutPopupOpen(false);
-            }}
-            onContactUs={() => {
-              setIsAboutPopupOpen(false);
-            }}
-            onGoToWebsite={() => {
-              setIsAboutPopupOpen(false);
-            }}
-          />
-        )}
+      {/* About Popup */}
+      {isAboutPopupOpen && (
+        <AboutPopup
+          onStopHosting={() => {
+            handleStopHosting();
+            setIsAboutPopupOpen(false);
+          }}
+          onContactUs={() => {
+            setIsAboutPopupOpen(false);
+          }}
+          onGoToWebsite={() => {
+            setIsAboutPopupOpen(false);
+          }}
+        />
+      )}
 
+      {/* Contenu principal - prend tout l'espace disponible */}
+      <div className="flex-grow flex flex-col space-y-4 pt-4">
         {isCleaningUp ? (
           <Cleanup onCleanupComplete={handleCleanupComplete} />
         ) : !isInitializing ? (
           <>
-            <div className="pt-4">
+            <div>
               {!isRunning ? (
                 <WelcomeComponent />
               ) : (
@@ -380,11 +381,11 @@ export function MainScreen() {
                 {/* Start hosting button */}
                 <button
                   className="group w-full h-12 flex items-center
-                    justify-between opacity-100 rounded-[40px] px-5 py-4
-                    bg-black shadow-lg relative
-                    hover:bg-gradient-to-t from-[#C4FFEA] to-[#FBDF9C]
-                    transition-all duration-300
-                    cursor-pointer focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                  justify-between opacity-100 rounded-[40px] px-5 py-4
+                  bg-black shadow-lg relative
+                  hover:bg-gradient-to-t from-[#C4FFEA] to-[#FBDF9C]
+                  transition-all duration-300
+                  cursor-pointer focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                   style={{
                     boxShadow: '0px 6px 8px 0px #00000040'
                   }}
@@ -411,30 +412,24 @@ export function MainScreen() {
                 </button>
               </>
             )}
-
-
-            {/* Dummy downloader 
-            <DummyDownloader downloadPath={selectedPath || ""} />*/}
           </>
         ) : (
           <ShelterInitialization />
-        )
-        }
+        )}
+      </div>
 
-        {/* Footer */}
-        <div
-          className="w-full h-[32px] flex items-center text-center gap-2 pt-2 opacity-80 justify-center"
-          style={{ transform: "rotate(0deg)" }}
+      {/* Footer - toujours en bas */}
+      <div
+        className="w-full h-[32px] flex items-center text-center gap-2 pt-2 opacity-80 justify-center flex-shrink-0 mt-auto"
+        style={{ transform: "rotate(0deg)" }}
+      >
+        <span
+          className="text-[9px] text-white font-normal uppercase tracking-[0.1em] leading-[100%] align-middle"
+          style={{ fontFamily: "Akzidenz-Grotesk Pro, sans-serif", whiteSpace: "normal" }}
         >
-          <span
-            className="text-[9px] text-white font-normal uppercase tracking-[0.1em] leading-[100%] align-middle"
-            style={{ fontFamily: "Akzidenz-Grotesk Pro, sans-serif", whiteSpace: "normal" }}
-          >
-            made with <img src={heartIconUrl} alt="coeur" className="w-4 h-4 inline-block align-middle -translate-y-[1px]" /> by the data for good community
-          </span>
-
-        </div>
-      </div >
-    </div >
+          made with <img src={heartIconUrl} alt="coeur" className="w-4 h-4 inline-block align-middle -translate-y-[1px]" /> by the data for good community
+        </span>
+      </div>
+    </div>
   );
 }
