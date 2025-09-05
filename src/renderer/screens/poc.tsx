@@ -6,9 +6,10 @@ import { logger } from "renderer/lib/logger";
 import AboutPopup from "renderer/components/about-popup";
 
 // broija 2025/08/25 : dissociated download logic from graphic features
-import LoadingBars from "renderer/components/LoadingBarsDisplay";
+import LoadingBars from "renderer/components/ui/loading-bars/LoadingBarsDisplay";
 import { useDownloadManager, DownloadManager } from "renderer/hooks/useDownloadManager";
 import StorageSelector from "renderer/components/storage-selector";
+import { buttonVariants } from "renderer/tailwind-pattern";
 
 // Header
 const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
@@ -336,11 +337,7 @@ export function MainScreen() {
 
             {/* Path */}
             <button
-              className="w-full min-h-[35px] max-h-[35px] h-[35px] flex items-center justify-between 
-             px-4 py-0 rounded-[20px] border border-white/30 
-             hover:border-white/50 hover:bg-white/5 
-             transition-all duration-200 cursor-pointer focus:outline-none
-             box-border"
+              className={buttonVariants.primary}
               onClick={handleSelectFolder}
               title={selectedPath || undefined}
             >
@@ -365,30 +362,26 @@ export function MainScreen() {
               )}
             </button>
 
+            {/* Storage configuration button */}
+            <button
+              className={buttonVariants.primary}
+              onClick={toggleStorageSelector}
+            >
+              <span className="text-akz-gro text-xs text-white/80">
+                Storage: {allocatedStorage} GB
+              </span>
+              <span className="text-akz-gro text-xs text-white/60">
+                {showStorageSelector ? "Close" : "Configure"}
+              </span>
+            </button>
+            {showStorageSelector && <StorageSelector
+              onStorageSelected={handleStorageSelected}
+              defaultSelection={allocatedStorage}
+            />}
+
             {/* Storage configuration and start hosting buttons */}
             {!isRunning && !isHosting && (
               <>
-                {/* Storage configuration button */}
-                <button
-                  className="w-full min-h-[35px] max-h-[35px] h-[35px] flex items-center justify-between 
-                 px-4 py-0 rounded-[20px] border border-white/30 
-                 hover:border-white/50 hover:bg-white/5 
-                 transition-all duration-200 cursor-pointer focus:outline-none
-                 box-border"
-                  onClick={toggleStorageSelector}
-                >
-                  <span className="text-akz-gro text-xs text-white/80">
-                    Storage: {allocatedStorage} GB
-                  </span>
-                  <span className="text-akz-gro text-xs text-white/60">
-                    {showStorageSelector ? "Close" : "Configure"}
-                  </span>
-                </button>
-                {showStorageSelector && <StorageSelector
-                  onStorageSelected={handleStorageSelected}
-                  defaultSelection={allocatedStorage}
-                />}
-
                 {/* Start hosting button */}
                 <button
                   className="group w-full h-12 flex items-center
