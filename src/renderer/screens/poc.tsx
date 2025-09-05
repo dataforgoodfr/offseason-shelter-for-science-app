@@ -343,7 +343,7 @@ export function MainScreen() {
 
               {/* Only visible if path is already set */}
               {selectedPath && (
-                <div className="w-[43px] h-[19px] flex items-center justify-center rounded-full py-1.5 px-1 bg-[#737372] flex-shrink-0 ml-2">
+                <div className="h-[19px] flex items-center justify-center rounded-full py-1.5 px-1.5 bg-[#737372] flex-shrink-0 ml-2">
                   <span className="text-akz-gro text-[10px] font-medium text-white">
                     Change
                   </span>
@@ -353,15 +353,17 @@ export function MainScreen() {
 
             {/* Storage configuration button */}
             <button
-              className={buttonVariants.primary}
+              className={`${buttonVariants.primary} ${showStorageSelector && 'border-white/50 bg-white/5'}`}
               onClick={toggleStorageSelector}
             >
               <span className="text-akz-gro text-xs text-white/80">
                 Storage: {allocatedStorage} GB
               </span>
-              <span className="text-akz-gro text-xs text-white/60">
-                {showStorageSelector ? "Close" : "Configure"}
-              </span>
+              <div className="h-[19px] flex items-center justify-center rounded-full py-1.5 px-1.5 bg-[#737372] flex-shrink-0 ml-2">
+                <span className="text-akz-gro text-[10px] font-medium text-white">
+                  {showStorageSelector ? "Close" : "Configure"}
+                </span>
+              </div>
             </button>
             {showStorageSelector && <StorageSelector
               onStorageSelected={handleStorageSelected}
