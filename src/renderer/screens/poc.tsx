@@ -10,6 +10,7 @@ import LoadingBars from "renderer/components/ui/loading-bars/LoadingBarsDisplay"
 import { useDownloadManager, DownloadManager } from "renderer/hooks/useDownloadManager";
 import StorageSelector from "renderer/components/storage-selector";
 import { buttonVariants } from "renderer/tailwind-pattern";
+import { WINDOW_DIMENSIONS } from "shared/constants";
 
 // Header
 const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
@@ -216,7 +217,9 @@ export function MainScreen() {
   return (
     <div className="s4s-container relative w-full h-full bg-[hsla(154,29%,38%,1)] p-4 rounded-2xl border-2 border-[#457E65] leading-light"
       style={{
-        background: "linear-gradient(0deg, rgba(0, 0, 0, 0.00) 50%, rgba(0, 0, 0, 0.30) 100%), #457E65"
+        backgroundPosition: "top left, 0 0",
+        backgroundRepeat: "no-repeat, repeat",
+        backgroundSize: `100% ${WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED}px, 100% 100%`
       }}>
       <div className="flex flex-col h-full justify-between space-y-4">
         {/* Header avec zone de déplacement */}
