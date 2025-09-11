@@ -1,3 +1,4 @@
+import { GIGA_BYTES } from "lib/electron-app/utils/units";
 import { useState, useCallback } from "react";
 import { logger } from "renderer/lib/logger";
 
@@ -22,11 +23,18 @@ export default function StorageSelector({
   const [selectedStorage, setSelectedStorage] = useState<number>(defaultSelection);
   const [customValue, setCustomValue] = useState<string>("");
 
-  const handleStorageSelection = useCallback((storageGB: number) => {
+  const updateStorageValue = useCallback((storageGB: number) => {
     setSelectedStorage(storageGB);
-    setCustomValue("");
     onStorageSelected(storageGB);
+
+    // Send value to main process
+    window.App.setStorageAllocation(storageGB * GIGA_BYTES);
   }, [onStorageSelected]);
+
+  const handleStorageSelection = useCallback((storageGB: number) => {
+    updateStorageValue(storageGB);
+    setCustomValue("");
+  }, [updateStorageValue]);
 
   const handleCustomSubmit = useCallback(() => {
     const customGB = parseFloat(customValue);
@@ -37,9 +45,8 @@ export default function StorageSelector({
       return;
     }
 
-    setSelectedStorage(customGB);
-    onStorageSelected(customGB);
-  }, [customValue, onStorageSelected]);
+    updateStorageValue(customGB);
+  }, [customValue, updateStorageValue]);
 
   return (
     <div className="flex flex-col items-center gap-4 w-full p-6 bg-[hsla(154,29%,32%,1)] rounded-2xl border border-white/30">

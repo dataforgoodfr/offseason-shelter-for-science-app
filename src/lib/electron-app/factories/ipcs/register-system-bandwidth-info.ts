@@ -172,8 +172,8 @@ export function registerSystemInfo() {
     })
   })
 
-  // Handlers pour les préférences
-  ipcMain.handle('set-storage-allocation', async (event, percentage: number) => {
+  // Prefs handlers
+  ipcMain.handle('set-storage-allocation', async (event, storageBytes: number) => {
     try {
       const configPath = path.join(os.homedir(), '.shelter-config.json')
       let config: any = {}
@@ -186,12 +186,12 @@ export function registerSystemInfo() {
         }
       }
 
-      config.storageAllocation = percentage
+      config.storageAllocation = storageBytes
       fs.writeFileSync(configPath, JSON.stringify(config))
-      console.log(`Allocation stockage sauvegardée: ${percentage}%`)
+      console.log(`Storage allocation saved: ${storageBytes} bytes`)
       return true
     } catch (error) {
-      console.error('Erreur sauvegarde allocation stockage:', error)
+      console.error('Error saving storage allocation:', error)
       return false
     }
   })

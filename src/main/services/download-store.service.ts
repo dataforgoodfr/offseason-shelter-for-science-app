@@ -28,6 +28,30 @@ class DownloadStoreService {
   getDownloadedFiles(): DownloadedFilesStore {
     return store.get("downloadedFiles", {}) as DownloadedFilesStore;
   }
+
+  private computeTotalDownloadedFileSize(downloadedFiles: DownloadedFilesStore): number {
+    let totalSize = 0;
+    Object.values(downloadedFiles).forEach((file) => {
+      const fileStats = fs.statSync(file.filePath);
+      totalSize += fileStats.size;
+    });
+    return totalSize;
+  }
+
+  /** Get the total size of all downloaded files */
+  getTotalDownloadedFileSize(): number {
+    const downloadedFiles = this.getDownloadedFiles();
+    
+    return this.computeTotalDownloadedFileSize(downloadedFiles);
+  }
+
+  getRemainingFreeSpace(): number {
+    return store.get("remainingFreeSpace", 0);
+  }
+
+  private setRemainingFreeSpace(freeSpace: number): void {
+    store.set("remainingFreeSpace", freeSpace);
+  }
   
   // Add a downloaded file path in DB
   addDownloadedFile(filePath: string): void {
@@ -36,10 +60,32 @@ class DownloadStoreService {
     downloadedFiles[filePath] = {
       filePath,
       downloadedAt: Date.now(),
+      modifiedAt: fs.statSync(filePath).mtime.getTime(),
+      size: fs.statSync(filePath).size,
     };
-    
+
     store.set("downloadedFiles", downloadedFiles);
+
     console.log(`Added downloaded file to DB: ${filePath}`);
+
+    const storageAllocation = store.get("storageAllocation", 0);
+
+    // Check if the total size of the downloaded files is greater than the storage allocation
+    const freeSpace = storageAllocation - this.computeTotalDownloadedFileSize(downloadedFiles);
+
+    if (freeSpace <= 0) {
+      loggerService.error("Free space exhausted");
+      this.setRemainingFreeSpace(0);
+
+      // Send free space exhausted event to main window
+      if (this.window) {
+        this.window.webContents.send('free-space:exhausted');
+      }
+
+      /** @todo Stop download process */
+    } else {
+      this.setRemainingFreeSpace(freeSpace);
+    }    
   }
   
   // Delete all downloaded files in a directory
@@ -111,6 +157,8 @@ class DownloadStoreService {
 interface DownloadedFile {
   filePath: string;
   downloadedAt: number;
+  modifiedAt: number;
+  size: number;
 }
 
 interface DownloadedFilesStore {

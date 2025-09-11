@@ -101,8 +101,14 @@ export function useDownloadManager() : DownloadManager {
         }
       };
 
-      await climateDataService.fetchAndDownload(payload, downloadPath, callbacks);
+      const remainingFreeSpace = window.App.getRemainingFreeSpace();
+      if (remainingFreeSpace <= 0) {
+        logger.error('Free space exhausted, stopping download');
+        callbacks.onError?.('Free space exhausted', undefined);
+        return;
+      }
 
+      await climateDataService.fetchAndDownload(payload, downloadPath, callbacks);
     } catch (error: any) {
       logger.error("Error encountered during download process", { error: error.message });
       setState(prev => ({

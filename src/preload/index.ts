@@ -72,12 +72,21 @@ const API = {
    // Obtenir l'espace disque disponible (libre) pour un chemin donné
   getFreeSpace: (path: string) => ipcRenderer.invoke('get-free-space', path),
 
+  // Retrieve remaining free space
+  getRemainingFreeSpace: () => ipcRenderer.invoke('free-space:get-remaining'),
+
+  // Free space event listener
+  onFreeSpaceExhausted: (callback: () => void) => {
+    ipcRenderer.on('free-space:exhausted', () => callback())
+    return () => ipcRenderer.removeAllListeners('free-space:exhausted')
+  },
+
   // Détecter la bande passante réseau actuelle
   detectBandwidth: () => ipcRenderer.invoke('detect-bandwidth'),
 
-  // Sauvegarder les préférences d'allocation
-  setStorageAllocation: (percentage: number) => 
-    ipcRenderer.invoke('set-storage-allocation', percentage),
+  // Save prefs
+  setStorageAllocation: (storageBytes: number) => 
+    ipcRenderer.invoke('set-storage-allocation', storageBytes),
   setBandwidthAllocation: (percentage: number) => 
     ipcRenderer.invoke('set-bandwidth-allocation', percentage),
 

@@ -21,4 +21,8 @@ export function registerDownloadStore() {
         
         return downloadStoreService.cleanupDownloadedFiles(directoryPath);
     });
+
+    ipcMain.handle("free-space:get-remaining", () => {
+        return downloadStoreService.getRemainingFreeSpace();
+    });
 }

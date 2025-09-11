@@ -241,6 +241,13 @@ class ClimateDataService {
     callbacks?.onStatusChange?.('downloading now')
 
     for (let i = 0; i < assets.length; i++) {
+      // If free space exhausted, stop the download
+      if (window.App.getRemainingFreeSpace() <= 0) {
+        logger.error('Free space exhausted, stopping download');
+        callbacks?.onError?.('Free space exhausted', assets[i]);
+        return completedAssets
+      }
+
       const asset = assets[i]
 
       // Mise à jour de la progression

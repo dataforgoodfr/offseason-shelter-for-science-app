@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import WelcomeComponent from "renderer/components/WelcomeComponent";
 import ShelterInitialization from "renderer/components/initializing";
 import Cleanup from "renderer/components/Cleanup";
+import FreeSpaceExhausted from "renderer/components/ui/FreeSpaceExhausted";
 import { logger } from "renderer/lib/logger";
 import AboutPopup from "renderer/components/about-popup";
 
@@ -32,6 +33,7 @@ export function MainScreen() {
   const [allocatedStorage, setAllocatedStorage] = useState<number>(10); // Default 10GB
   const [showStorageSelector, setShowStorageSelector] = useState(false);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
+  const [isFreeSpaceExhausted, setIsFreeSpaceExhausted] = useState(false);
   const downloadManager = useDownloadManager();
 
   const handleInitializationComplete = useCallback((freeBytes: number) => {
@@ -78,10 +80,19 @@ export function MainScreen() {
       setIsRunning(false);
     });
 
+    const freeSpaceExhausted = window.App.onFreeSpaceExhausted(() => {
+      logger.error('Free space exhausted');
+      setIsHosting(false);
+      setIsInitializing(false);
+      setIsRunning(false);
+      setIsFreeSpaceExhausted(true);
+    });
+
     return () => {
       cleanupStateChange();
       cleanupComplete();
       cleanupError();
+      freeSpaceExhausted();
     };
   }, [handleInitializationComplete]);
 
@@ -190,6 +201,7 @@ export function MainScreen() {
     setIsInitializing(false);
     setIsRunning(false);
     setIsCleaningUp(false);
+    setIsFreeSpaceExhausted(false);
   };
 
   const toggleAboutPopup = () => {
@@ -316,6 +328,11 @@ export function MainScreen() {
       <div className="flex-grow flex flex-col space-y-4 pt-4">
         {isCleaningUp ? (
           <Cleanup onCleanupComplete={handleCleanupComplete} />
+        ) : isFreeSpaceExhausted ? (
+          <FreeSpaceExhausted 
+            onRetry={handleRetryAfterSpaceExhausted}
+            onSelectNewPath={handleSelectNewPathAfterSpaceExhausted}
+          />
         ) : !isInitializing ? (
           <>
             <div>
