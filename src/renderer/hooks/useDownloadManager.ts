@@ -101,9 +101,8 @@ export function useDownloadManager() : DownloadManager {
         }
       };
 
-      const remainingFreeSpace = window.App.getRemainingFreeSpace();
-      if (remainingFreeSpace <= 0) {
-        logger.error('Free space exhausted, stopping download');
+      const remainingFreeSpace = await window.App.checkRemainingFreeSpace();
+      if (!remainingFreeSpace) {
         callbacks.onError?.('Free space exhausted', undefined);
         return;
       }

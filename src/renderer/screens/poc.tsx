@@ -12,6 +12,7 @@ import { useDownloadManager, DownloadManager } from "renderer/hooks/useDownloadM
 import StorageSelector from "renderer/components/storage-selector";
 import { buttonVariants } from "renderer/tailwind-pattern";
 import { WINDOW_DIMENSIONS } from "shared/constants";
+import { GIGA_BYTES } from "lib/electron-app/utils/units";
 
 // Header
 const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
@@ -29,15 +30,15 @@ export function MainScreen() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [displayedPath, setDisplayedPath] = useState<string | null>(null);
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
-  const [freeSpace, setFreeSpace] = useState<number>(0);
+  const [diskFreeSpace, setDiskFreeSpace] = useState<number>(0);
   const [allocatedStorage, setAllocatedStorage] = useState<number>(10); // Default 10GB
   const [showStorageSelector, setShowStorageSelector] = useState(false);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [isFreeSpaceExhausted, setIsFreeSpaceExhausted] = useState(false);
   const downloadManager = useDownloadManager();
 
-  const handleInitializationComplete = useCallback((freeBytes: number) => {
-    setFreeSpace(freeBytes);
+  const handleInitializationComplete = useCallback(async (freeBytes: number) => {
+    setDiskFreeSpace(freeBytes);
 
     if (!selectedPath) {
       return;
@@ -45,7 +46,7 @@ export function MainScreen() {
 
     setIsRunning(true);
 
-    downloadManager.startDownload(selectedPath, freeBytes);
+    downloadManager.startDownload(selectedPath, await window.App.getRemainingFreeSpace());
   }, [selectedPath, downloadManager, allocatedStorage]);
 
   const handleStorageSelected = useCallback((storageGB: number) => {
@@ -81,7 +82,6 @@ export function MainScreen() {
     });
 
     const freeSpaceExhausted = window.App.onFreeSpaceExhausted(() => {
-      logger.error('Free space exhausted');
       setIsHosting(false);
       setIsInitializing(false);
       setIsRunning(false);
@@ -95,6 +95,18 @@ export function MainScreen() {
       freeSpaceExhausted();
     };
   }, [handleInitializationComplete]);
+
+  const handleAllocateMoreSpace = () => {
+    setIsFreeSpaceExhausted(false);
+
+    toggleStorageSelector();
+  };
+
+  const handleSelectNewPath = () => {
+    setIsFreeSpaceExhausted(false);
+
+    handleSelectFolder();
+  };
 
   // Resize window
   useEffect(() => {
@@ -151,12 +163,19 @@ export function MainScreen() {
     return '.../' + path.split('/').slice(-1)[0];
   }
 
+  // Download path init
   useEffect(() => {
     window.App.getDownloadPath().then((path) => {
       if (path) {
         setSelectedPath(path);
         setDisplayedPath(shortenPathForDisplay(path));
       }
+    });
+  }, []);
+
+  useEffect(() => {
+    window.App.getStorageAllocation().then((storageAllocation) => {
+      setAllocatedStorage(storageAllocation / GIGA_BYTES);
     });
   }, []);
 
@@ -329,9 +348,9 @@ export function MainScreen() {
         {isCleaningUp ? (
           <Cleanup onCleanupComplete={handleCleanupComplete} />
         ) : isFreeSpaceExhausted ? (
-          <FreeSpaceExhausted 
-            onRetry={handleRetryAfterSpaceExhausted}
-            onSelectNewPath={handleSelectNewPathAfterSpaceExhausted}
+          <FreeSpaceExhausted
+            onAllocateMoreSpace={handleAllocateMoreSpace}
+            onSelectNewPath={handleSelectNewPath}
           />
         ) : !isInitializing ? (
           <>

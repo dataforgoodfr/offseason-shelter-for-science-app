@@ -72,8 +72,9 @@ const API = {
    // Obtenir l'espace disque disponible (libre) pour un chemin donné
   getFreeSpace: (path: string) => ipcRenderer.invoke('get-free-space', path),
 
-  // Retrieve remaining free space
+  // Remaining free space
   getRemainingFreeSpace: () => ipcRenderer.invoke('free-space:get-remaining'),
+  checkRemainingFreeSpace: () => ipcRenderer.invoke('free-space:check-remaining'),
 
   // Free space event listener
   onFreeSpaceExhausted: (callback: () => void) => {

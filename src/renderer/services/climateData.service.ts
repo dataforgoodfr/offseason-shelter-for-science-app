@@ -242,8 +242,7 @@ class ClimateDataService {
 
     for (let i = 0; i < assets.length; i++) {
       // If free space exhausted, stop the download
-      if (window.App.getRemainingFreeSpace() <= 0) {
-        logger.error('Free space exhausted, stopping download');
+      if (!await window.App.checkRemainingFreeSpace()) {
         callbacks?.onError?.('Free space exhausted', assets[i]);
         return completedAssets
       }
@@ -258,7 +257,7 @@ class ClimateDataService {
 
       try {
         let result: { success: boolean; filePath?: string; magnetLink?: string; fileSize?: number; error?: string }
-        
+
         // Nettoyage du nom du fichier
         asset.name = asset.name.replace(/[\s\/\\:*?"<>|]/g, '_');
 
@@ -357,7 +356,7 @@ class ClimateDataService {
       return await this.downloadAssets(
         response.asset,
         downloadPath,
-        payload.rescuer_id,
+        payload.node_id, // broija 2025/09/11 : should be named rescuer_id to be consistent with /assets-downloaded
         callbacks
       )
     } catch (error: any) {

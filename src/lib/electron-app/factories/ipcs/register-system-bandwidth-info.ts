@@ -4,6 +4,7 @@ import * as os from 'os'
 import * as path from 'path'
 
 import { GIGA_BYTES, MEGA_BYTES, TERA_BYTES } from '../../utils/units'
+import { userConfig } from '../../utils/user-config'
 
 const DEFAULT_STORAGE_ALLOCATION = 50 * GIGA_BYTES
 
@@ -174,26 +175,7 @@ export function registerSystemInfo() {
 
   // Prefs handlers
   ipcMain.handle('set-storage-allocation', async (event, storageBytes: number) => {
-    try {
-      const configPath = path.join(os.homedir(), '.shelter-config.json')
-      let config: any = {}
-
-      if (fs.existsSync(configPath)) {
-        try {
-          config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-        } catch (e) {
-          config = {}
-        }
-      }
-
-      config.storageAllocation = storageBytes
-      fs.writeFileSync(configPath, JSON.stringify(config))
-      console.log(`Storage allocation saved: ${storageBytes} bytes`)
-      return true
-    } catch (error) {
-      console.error('Error saving storage allocation:', error)
-      return false
-    }
+    userConfig.setStorageAllocation(storageBytes);
   })
 
   ipcMain.handle('set-bandwidth-allocation', async (event, percentage: number) => {
@@ -220,16 +202,7 @@ export function registerSystemInfo() {
   })
 
   ipcMain.handle('get-storage-allocation', async () => {
-    try {
-      const configPath = path.join(os.homedir(), '.shelter-config.json')
-      if (fs.existsSync(configPath)) {
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-        return config.storageAllocation || 50
-      }
-    } catch (error) {
-      console.error('Erreur lecture allocation stockage:', error)
-    }
-    return 50
+    return userConfig.getStorageAllocation()
   })
 
   ipcMain.handle('get-bandwidth-allocation', async () => {

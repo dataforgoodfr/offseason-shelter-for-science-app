@@ -125,8 +125,8 @@ export default function StorageSelector({
             <button
               onClick={handleCustomSubmit}
               disabled={!customValue || parseFloat(customValue) <= 0}
-              className="h-8 px-3 py-1 rounded-md border border-white/30 
-                       text-white/80 text-xs hover:border-white/50 hover:bg-white/5 
+              className="h-8 px-2 py-0.5 rounded-md border border-white/30 
+                       text-white/80 text-[10px] hover:border-white/50 hover:bg-white/5 
                        transition-all duration-200 cursor-pointer
                        disabled:opacity-30 disabled:cursor-not-allowed"
               style={{
@@ -139,8 +139,8 @@ export default function StorageSelector({
               onClick={() => {
                 setCustomValue("");
               }}
-              className="h-8 px-3 py-1 rounded-md border border-white/30 
-                       text-white/60 text-xs hover:border-white/50 hover:bg-white/5 
+              className="h-8 px-2 py-0.5 rounded-md border border-white/30 
+                       text-white/60 text-[10px] hover:border-white/50 hover:bg-white/5 
                        transition-all duration-200 cursor-pointer"
               style={{
                 fontFamily: 'Akzidenz-Grotesk Pro'

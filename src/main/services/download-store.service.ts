@@ -2,6 +2,7 @@ import Store from "electron-store";
 import * as fs from "fs";
 import { BrowserWindow } from "electron";
 import { loggerService } from "./logger";
+import { userConfig } from "lib/electron-app/utils/user-config";
 
 const store = new Store();
 
@@ -46,11 +47,35 @@ class DownloadStoreService {
   }
 
   getRemainingFreeSpace(): number {
-    return store.get("remainingFreeSpace", 0);
+    return this.computeRemainingFreeSpace();
   }
 
   private setRemainingFreeSpace(freeSpace: number): void {
     store.set("remainingFreeSpace", freeSpace);
+  }
+
+  private computeRemainingFreeSpace(): number {
+    const storageAllocation = userConfig.getStorageAllocation();
+    const freeSpace = storageAllocation - this.computeTotalDownloadedFileSize(this.getDownloadedFiles());
+    return freeSpace;
+  }
+
+  checkRemainingFreeSpace(): boolean {
+    const freeSpace = this.computeRemainingFreeSpace();
+    const result = freeSpace > 0
+
+    if (freeSpace != this.getRemainingFreeSpace()) {
+      this.setRemainingFreeSpace(freeSpace);
+    }
+
+    // Send free space exhausted event to main window
+    if (!result) {
+      loggerService.error('Free space exhausted');
+       if (this.window) {
+         this.window.webContents.send('free-space:exhausted');
+       }
+    }
+    return result;
   }
   
   // Add a downloaded file path in DB
@@ -68,13 +93,13 @@ class DownloadStoreService {
 
     console.log(`Added downloaded file to DB: ${filePath}`);
 
-    const storageAllocation = store.get("storageAllocation", 0);
+    // Retrieve storage allocation from config
+    const storageAllocation = userConfig.getStorageAllocation();
 
     // Check if the total size of the downloaded files is greater than the storage allocation
     const freeSpace = storageAllocation - this.computeTotalDownloadedFileSize(downloadedFiles);
 
     if (freeSpace <= 0) {
-      loggerService.error("Free space exhausted");
       this.setRemainingFreeSpace(0);
 
       // Send free space exhausted event to main window
