@@ -52,10 +52,10 @@ export function useDownloadManager() : DownloadManager {
         onProgress: (currentProgress: number, currentIndex: number, total: number) => {
           if (total > 0) {
             const progressPercent = currentProgress / total;
-            const newProgress = Math.floor(progressPercent * 10);
+            const newProgress = Math.floor(progressPercent * 100);
             setState(prev => ({
               ...prev,
-              progress: Math.min(newProgress, 10)
+              progress: Math.min(newProgress, 100)
             }));
           }
         },
@@ -79,7 +79,7 @@ export function useDownloadManager() : DownloadManager {
           setConcurrentDownloadCount(prev => prev - 1);
           setState(prev => ({
             ...prev,
-            progress: 10,
+            progress: 100,
             currentStatus: 'uploading',
             completedAssets: assets,
             isRunning: false

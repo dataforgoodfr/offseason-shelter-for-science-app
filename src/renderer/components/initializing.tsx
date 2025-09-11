@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ErrorActions from "./ErrorActions";
 import { InitStatus, InitStep } from "renderer/lib/types";
-import { 
+import {
   useInitialization,
   STEP_STATUS_LOADING,
   STEP_STATUS_SUCCESS,
@@ -13,6 +13,7 @@ const processingIconUrl = new URL('../assets/icons/processing.svg', import.meta.
 const check_markIconUrl = new URL('../assets/icons/check_mark.svg', import.meta.url).href;
 
 import { logger } from "renderer/lib/logger";
+import { leadingVariants } from "renderer/tailwind-pattern";
 
 // Props removed - component only displays steps now
 
@@ -40,17 +41,17 @@ const ShelterInitialization = () => {
     switch (status) {
       case STEP_STATUS_LOADING:
         return (
-          <img 
+          <img
             src={processingIconUrl}
-            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" 
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin"
             alt="Processing"
           />
         );
       case STEP_STATUS_SUCCESS:
         return (
-          <img 
-            src={check_markIconUrl} 
-            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px]" 
+          <img
+            src={check_markIconUrl}
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px]"
             alt="Success"
           />
         );
@@ -58,9 +59,9 @@ const ShelterInitialization = () => {
         return <div className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] rounded-full bg-red-500" />;
       default:
         return (
-          <img 
+          <img
             src={processingIconUrl}
-            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin" 
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin"
             alt="Processing"
           />
         );
@@ -77,14 +78,14 @@ const ShelterInitialization = () => {
   };
 
   return (
-    <div className="w-[188px] h-[190px] gap-[48px] pt-[16px] flex flex-col items-center">
+    <div className="w-full h-[190px] gap-[48px] pt-[16px] flex flex-col items-center">
 
       <div
         className="w-[166px] h-[36px] flex items-center justify-center opacity-100"
         style={{ transform: "rotate(0deg)" }}
       >
         <span
-          className="text-white font-medium text-center leading-[100%] tracking-[-0.01em]"
+          className={leadingVariants.title}
           style={{
             fontFamily: "Akzidenz-Grotesk Pro",
             fontSize: "18.57px",
@@ -92,14 +93,14 @@ const ShelterInitialization = () => {
           }}
         >
           {hasError ? ("Error, unable to create a shelter") :
-          (
-            <>
-              Creation of
-              <br />
-              your shelter
-            </>
-          )}
-          
+            (
+              <>
+                Creation of
+                <br />
+                your shelter
+              </>
+            )}
+
         </span>
       </div>
 
@@ -129,7 +130,7 @@ const ShelterInitialization = () => {
           ))}
         </div>
       )}
-    
+
     </div>
   );
 };

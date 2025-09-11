@@ -150,6 +150,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     scroll-behavior: smooth;
     -webkit-app-region: no-drag;
     -webkit-font-smoothing: antialiased;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    overflow: hidden;
   }
 }
 
@@ -210,7 +214,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
 #path-selection-frame {
   display: flex;
-  width: 188px;
+  width: full;
   height: 35px;
   padding: 8px 12px;
   justify-content: space-between;

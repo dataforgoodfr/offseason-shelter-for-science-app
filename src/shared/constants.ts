@@ -10,10 +10,10 @@ export const PLATFORM = {
 
 export const WINDOW_DIMENSIONS = {
   MAIN: {
-    WIDTH: 220,
+    WIDTH: 240,
     HEIGHT: {
-      COLLAPSED: 361,
-      EXPANDED: 492,
+      COLLAPSED: 390,
+      EXPANDED: 675,
     },
   },
 } as const

@@ -116,6 +116,13 @@ const API = {
 
   // Window height control
   expandMainWindowHeight: (isExpanded: boolean) => ipcRenderer.invoke('window:expand-height', isExpanded),
+  setWindowHeight: (height: number) => ipcRenderer.invoke('window:set-height', height),
+  
+  // Window control methods
+  minimize: () => ipcRenderer.invoke('window:minimize'),
+  close: () => ipcRenderer.invoke('window:close'),
+  startDragging: () => ipcRenderer.invoke('window:start-dragging'),
+  moveWindow: (deltaX: number, deltaY: number) => ipcRenderer.invoke('window:move', deltaX, deltaY),
 
   // Cleanup event listeners
   onCleanupFilesSuccess: (callback: () => void) => {

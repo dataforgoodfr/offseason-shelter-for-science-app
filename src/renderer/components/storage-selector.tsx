@@ -15,9 +15,9 @@ const STORAGE_OPTIONS = [
   { label: "100 GB", value: 100 },
 ];
 
-export default function StorageSelector({ 
+export default function StorageSelector({
   onStorageSelected,
-  defaultSelection = 10 
+  defaultSelection = 10
 }: StorageSelectorProps) {
   const [selectedStorage, setSelectedStorage] = useState<number>(defaultSelection);
   const [customValue, setCustomValue] = useState<string>("");
@@ -42,11 +42,11 @@ export default function StorageSelector({
   }, [customValue, onStorageSelected]);
 
   return (
-    <div className="flex flex-col items-center gap-4 w-full">
+    <div className="flex flex-col items-center gap-4 w-full p-6 bg-[hsla(154,29%,32%,1)] rounded-2xl border border-white/30">
       {/* Title */}
-      <span 
+      <span
         className="text-white text-center text-lg font-medium leading-none tracking-tight"
-        style={{ 
+        style={{
           fontFamily: 'Akzidenz-Grotesk Pro',
           letterSpacing: '-1%'
         }}
@@ -55,11 +55,11 @@ export default function StorageSelector({
       </span>
 
       {/* Storage options grid */}
-      <div className="grid grid-cols-2 gap-2 w-full max-w-[188px]">
+      <div className="grid grid-cols-2 gap-2 w-full max-w-full">
         {STORAGE_OPTIONS.map((option) => {
           const isDisabled = false;
           const isSelected = selectedStorage === option.value;
-          
+
           return (
             <button
               key={option.value}
@@ -69,14 +69,14 @@ export default function StorageSelector({
                 h-8 px-3 py-1 rounded-md border transition-all duration-200
                 flex items-center justify-center
                 text-xs font-normal
-                ${isSelected 
-                  ? 'border-white bg-white/10 text-white' 
+                ${isSelected
+                  ? 'border-white bg-white/10 text-white'
                   : isDisabled
                     ? 'border-white/20 text-white/30 cursor-not-allowed'
                     : 'border-white/30 text-white/80 hover:border-white/50 hover:bg-white/5 cursor-pointer'
                 }
               `}
-              style={{ 
+              style={{
                 fontFamily: 'Akzidenz-Grotesk Pro'
               }}
             >
@@ -89,7 +89,7 @@ export default function StorageSelector({
       {/* Custom input section */}
       <div className="flex flex-col items-center gap-2 w-full">
         <span className="text-white text-xs font-normal leading-normal text-center mb-0"
-          style={{ 
+          style={{
             fontFamily: 'Akzidenz-Grotesk Pro',
             fontSize: '10px',
           }}
@@ -97,7 +97,7 @@ export default function StorageSelector({
           Custom Size
         </span>
         {(
-          <div className="flex items-center gap-2 w-full max-w-[188px]">
+          <div className="flex items-center gap-2 w-full max-w-full">
             <div className="flex-1 relative">
               <input
                 type="number"
@@ -107,7 +107,7 @@ export default function StorageSelector({
                 className="w-full h-8 px-3 py-1 rounded-md border border-white/30 
                          bg-transparent text-white text-xs
                          placeholder-white/40 focus:border-white/50 focus:outline-none"
-                style={{ 
+                style={{
                   fontFamily: 'Akzidenz-Grotesk Pro'
                 }}
                 min="0.1"
@@ -122,7 +122,7 @@ export default function StorageSelector({
                        text-white/80 text-xs hover:border-white/50 hover:bg-white/5 
                        transition-all duration-200 cursor-pointer
                        disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ 
+              style={{
                 fontFamily: 'Akzidenz-Grotesk Pro'
               }}
             >
@@ -135,7 +135,7 @@ export default function StorageSelector({
               className="h-8 px-3 py-1 rounded-md border border-white/30 
                        text-white/60 text-xs hover:border-white/50 hover:bg-white/5 
                        transition-all duration-200 cursor-pointer"
-              style={{ 
+              style={{
                 fontFamily: 'Akzidenz-Grotesk Pro'
               }}
             >

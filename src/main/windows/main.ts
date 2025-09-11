@@ -14,6 +14,8 @@ export async function MainWindow() {
     title: displayName,
     width: WINDOW_DIMENSIONS.MAIN.WIDTH,
     height: WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED,
+    frame: false, // Supprime la barre de titre native
+    transparent: true,
     show: false,
     center: false,
     x: Math.floor((screenWidth - WINDOW_DIMENSIONS.MAIN.WIDTH) / 2) - 100,
