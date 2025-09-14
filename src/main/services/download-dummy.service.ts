@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { downloadStoreService } from "./download-store.service";
 
-interface DownloadProgress {
+export interface DownloadProgress {
   progress: number;
   speed: string;
   eta: string;
@@ -16,8 +16,6 @@ interface DownloadResult {
 }
 
 import { MEGA_BYTES } from "../../lib/electron-app/utils/units"
-import { loggerService } from "./logger";
-import { logger } from "renderer/lib/logger";
 
 /**
  * Downloads a file from a URL and saves it to the specified directory
@@ -126,7 +124,7 @@ export async function downloadFile(
       downloadedSize += value.length;
 
       // Calculate and report progress
-      if (totalSize > 0 && onProgress) {
+      if (onProgress) {
         const progress = Math.round((downloadedSize / totalSize) * 100);
         const elapsedTime = (Date.now() - startTime) / 1000;
         const speed = formatSpeed(downloadedSize / elapsedTime);
@@ -212,7 +210,9 @@ export async function downloadMultipleFiles(
     const result = await downloadFile(
       download.url,
       downloadPath,
-      (progress) => {
+      undefined,
+      undefined,
+      (progress: DownloadProgress) => {
         // Individual file progress
         console.log(`📁 File ${index + 1}/${downloads.length}: ${progress.progress}%`);
       }

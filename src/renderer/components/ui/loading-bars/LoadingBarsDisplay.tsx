@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import lottie, { AnimationItem } from "lottie-web";
 import loaderJson from "./loader.json"; // import direct
+import { logger } from "renderer/lib/logger";
 
 interface LoadingBarsProps {
   progress: number; // 0..1 ou 0..100
@@ -21,6 +22,7 @@ export default function LoadingBars({
   const animRef = useRef<AnimationItem | null>(null);
   const lastFrameRef = useRef<number>(0);
   const rafRef = useRef<number | null>(null);
+  const [currentFileSpeed, setCurrentFileSpeed] = useState('');
 
   progress = currentStatus === 'uploading' ? 100 : progress;
 
@@ -56,6 +58,13 @@ export default function LoadingBars({
       anim.destroy();
       animRef.current = null;
     };
+  }, []);
+
+  useEffect(() => {
+    window.App.onDownloadProgress((progress: number, speed: string, eta: string) => {
+      setCurrentFileSpeed(speed);
+    });
+    return () => { window.App.removeDownloadProgressListener(); };
   }, []);
 
   useEffect(() => {
@@ -132,6 +141,10 @@ export default function LoadingBars({
             }}
           />
         </div>
+      </div>
+      {/* Download speed */}
+      <div className="flex items-center justify-between text-xs text-white/70">
+        <span>Speed: {currentFileSpeed}</span>
       </div>
     </div>
   );
