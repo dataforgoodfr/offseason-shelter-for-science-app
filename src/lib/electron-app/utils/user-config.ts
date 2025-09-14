@@ -4,31 +4,41 @@ import * as os from 'os'
 import { GIGA_BYTES } from "./units"
 
 const DEFAULT_STORAGE_ALLOCATION = 50 * GIGA_BYTES
+const DEFAULT_BANDWIDTH_ALLOCATION = 10
 
 class UserConfig {
     private configPath = path.join(os.homedir(), '.shelter-config.json');
 
     private getValue(key: string) {
+        let result = null;
         try {
             const configPath = this.configPath;
+
             if (fs.existsSync(configPath)) {
-              const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-              return config[key]
+                const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+                result = config[key]
+            } else {
+                result = null;
             }
         } catch (error) {
-            console.error('Erreur lecture allocation stockage:', error)
+            console.error('User config get value:', error)
         }
-        return null;
+        return result;
     }
 
     private setValue(key: string, value: number) {
         try {
             const configPath = this.configPath;
-            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-            config[key] = value
+            let config: any = {};
+            if (fs.existsSync(configPath)) {
+                config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+                config[key] = value
+            } else {
+                config = { [key]: value }
+            }
             fs.writeFileSync(configPath, JSON.stringify(config))
         } catch (error) {
-            console.error('Erreur lecture allocation stockage:', error)
+            console.error('User config set value:', error)
         }
     }
 
@@ -42,7 +52,7 @@ class UserConfig {
     }
 
     public getBandwidthAllocation() {
-        return this.getValue('bandwidthAllocation')
+        return this.getValue('bandwidthAllocation') || DEFAULT_BANDWIDTH_ALLOCATION
     }
 
     public setBandwidthAllocation(value: number) {
