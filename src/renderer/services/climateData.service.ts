@@ -246,7 +246,7 @@ class ClimateDataService {
       // If free space exhausted, stop the download
       if (!await window.App.checkRemainingFreeSpace()) {
         callbacks?.onError?.('Free space exhausted', assets[i]);
-        return completedAssets
+        return { completedAssets, failedAssets }
       }
 
       const asset = assets[i]

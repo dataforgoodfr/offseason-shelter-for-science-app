@@ -106,7 +106,7 @@ export function useDownloadManager() : DownloadManager {
       const remainingFreeSpace = await window.App.checkRemainingFreeSpace();
       if (!remainingFreeSpace) {
         callbacks.onError?.('Free space exhausted', undefined);
-        return true; // broija 2025/09/12 : allocated space exhaustion is not an error
+        return false;
       }
 
       const { completedAssets, failedAssets } = await climateDataService.fetchAndDownload(payload, downloadPath, callbacks);
