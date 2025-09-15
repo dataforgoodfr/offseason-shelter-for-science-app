@@ -1,9 +1,8 @@
 import { ipcMain } from 'electron'
 import * as fs from 'fs'
-import * as os from 'os'
-import * as path from 'path'
 
 import { GIGA_BYTES, MEGA_BYTES, TERA_BYTES } from '../../utils/units'
+import { userConfig } from '../../utils/user-config'
 
 const DEFAULT_STORAGE_ALLOCATION = 50 * GIGA_BYTES
 
@@ -172,77 +171,21 @@ export function registerSystemInfo() {
     })
   })
 
-  // Handlers pour les préférences
-  ipcMain.handle('set-storage-allocation', async (event, percentage: number) => {
-    try {
-      const configPath = path.join(os.homedir(), '.shelter-config.json')
-      let config: any = {}
-
-      if (fs.existsSync(configPath)) {
-        try {
-          config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-        } catch (e) {
-          config = {}
-        }
-      }
-
-      config.storageAllocation = percentage
-      fs.writeFileSync(configPath, JSON.stringify(config))
-      console.log(`Allocation stockage sauvegardée: ${percentage}%`)
-      return true
-    } catch (error) {
-      console.error('Erreur sauvegarde allocation stockage:', error)
-      return false
-    }
+  // Prefs handlers
+  ipcMain.handle('set-storage-allocation', async (event, storageBytes: number) => {
+    userConfig.setStorageAllocation(storageBytes);
   })
 
   ipcMain.handle('set-bandwidth-allocation', async (event, percentage: number) => {
-    try {
-      const configPath = path.join(os.homedir(), '.shelter-config.json')
-      let config: any = {}
-
-      if (fs.existsSync(configPath)) {
-        try {
-          config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-        } catch (e) {
-          config = {}
-        }
-      }
-
-      config.bandwidthAllocation = percentage
-      fs.writeFileSync(configPath, JSON.stringify(config))
-      console.log(`Allocation bande passante sauvegardée: ${percentage}%`)
-      return true
-    } catch (error) {
-      console.error('Erreur sauvegarde allocation bande passante:', error)
-      return false
-    }
+    userConfig.setBandwidthAllocation(percentage);
   })
 
   ipcMain.handle('get-storage-allocation', async () => {
-    try {
-      const configPath = path.join(os.homedir(), '.shelter-config.json')
-      if (fs.existsSync(configPath)) {
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-        return config.storageAllocation || 50
-      }
-    } catch (error) {
-      console.error('Erreur lecture allocation stockage:', error)
-    }
-    return 50
+    return userConfig.getStorageAllocation()
   })
 
   ipcMain.handle('get-bandwidth-allocation', async () => {
-    try {
-      const configPath = path.join(os.homedir(), '.shelter-config.json')
-      if (fs.existsSync(configPath)) {
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
-        return config.bandwidthAllocation || 10
-      }
-    } catch (error) {
-      console.error('Erreur lecture allocation bande passante:', error)
-    }
-    return 10
+    return userConfig.getBandwidthAllocation()
   })
 
 }

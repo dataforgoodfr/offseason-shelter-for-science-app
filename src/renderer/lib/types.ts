@@ -10,7 +10,7 @@ export interface DispatchRequestPayload {
   name: string
   description: string
   free_space_gb: number
-  node_id: string // broija 2025/09/04 : should probably be a number, named rescuer_id
+  node_id: number // broija 2025/09/04 : should probably be a number, named rescuer_id
 }
 
 export interface Asset {

@@ -2,6 +2,7 @@ import Store from "electron-store";
 import * as fs from "fs";
 import { BrowserWindow } from "electron";
 import { loggerService } from "./logger";
+import { userConfig } from "lib/electron-app/utils/user-config";
 
 const store = new Store();
 
@@ -28,6 +29,54 @@ class DownloadStoreService {
   getDownloadedFiles(): DownloadedFilesStore {
     return store.get("downloadedFiles", {}) as DownloadedFilesStore;
   }
+
+  private computeTotalDownloadedFileSize(downloadedFiles: DownloadedFilesStore): number {
+    let totalSize = 0;
+    Object.values(downloadedFiles).forEach((file) => {
+      const fileStats = fs.statSync(file.filePath);
+      totalSize += fileStats.size;
+    });
+    return totalSize;
+  }
+
+  /** Get the total size of all downloaded files */
+  getTotalDownloadedFileSize(): number {
+    const downloadedFiles = this.getDownloadedFiles();
+    
+    return this.computeTotalDownloadedFileSize(downloadedFiles);
+  }
+
+  getRemainingFreeSpace(): number {
+    return this.computeRemainingFreeSpace();
+  }
+
+  private setRemainingFreeSpace(freeSpace: number): void {
+    store.set("remainingFreeSpace", freeSpace);
+  }
+
+  private computeRemainingFreeSpace(): number {
+    const storageAllocation = userConfig.getStorageAllocation();
+    const freeSpace = storageAllocation - this.computeTotalDownloadedFileSize(this.getDownloadedFiles());
+    return freeSpace;
+  }
+
+  checkRemainingFreeSpace(): boolean {
+    const freeSpace = this.computeRemainingFreeSpace();
+    const result = freeSpace > 0
+
+    if (freeSpace != this.getRemainingFreeSpace()) {
+      this.setRemainingFreeSpace(freeSpace);
+    }
+
+    // Send free space exhausted event to main window
+    if (!result) {
+      loggerService.error('Free space exhausted');
+       if (this.window) {
+         this.window.webContents.send('free-space:exhausted');
+       }
+    }
+    return result;
+  }
   
   // Add a downloaded file path in DB
   addDownloadedFile(filePath: string): void {
@@ -36,10 +85,32 @@ class DownloadStoreService {
     downloadedFiles[filePath] = {
       filePath,
       downloadedAt: Date.now(),
+      modifiedAt: fs.statSync(filePath).mtime.getTime(),
+      size: fs.statSync(filePath).size,
     };
-    
+
     store.set("downloadedFiles", downloadedFiles);
+
     console.log(`Added downloaded file to DB: ${filePath}`);
+
+    // Retrieve storage allocation from config
+    const storageAllocation = userConfig.getStorageAllocation();
+
+    // Check if the total size of the downloaded files is greater than the storage allocation
+    const freeSpace = storageAllocation - this.computeTotalDownloadedFileSize(downloadedFiles);
+
+    if (freeSpace <= 0) {
+      this.setRemainingFreeSpace(0);
+
+      // Send free space exhausted event to main window
+      if (this.window) {
+        this.window.webContents.send('free-space:exhausted');
+      }
+
+      /** @todo Stop download process */
+    } else {
+      this.setRemainingFreeSpace(freeSpace);
+    }    
   }
   
   // Delete all downloaded files in a directory
@@ -111,6 +182,8 @@ class DownloadStoreService {
 interface DownloadedFile {
   filePath: string;
   downloadedAt: number;
+  modifiedAt: number;
+  size: number;
 }
 
 interface DownloadedFilesStore {

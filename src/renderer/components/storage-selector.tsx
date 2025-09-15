@@ -1,3 +1,4 @@
+import { GIGA_BYTES } from "lib/electron-app/utils/units";
 import { useState, useCallback } from "react";
 import { logger } from "renderer/lib/logger";
 
@@ -22,11 +23,18 @@ export default function StorageSelector({
   const [selectedStorage, setSelectedStorage] = useState<number>(defaultSelection);
   const [customValue, setCustomValue] = useState<string>("");
 
-  const handleStorageSelection = useCallback((storageGB: number) => {
+  const updateStorageValue = useCallback((storageGB: number) => {
     setSelectedStorage(storageGB);
-    setCustomValue("");
     onStorageSelected(storageGB);
+
+    // Send value to main process
+    window.App.setStorageAllocation(storageGB * GIGA_BYTES);
   }, [onStorageSelected]);
+
+  const handleStorageSelection = useCallback((storageGB: number) => {
+    updateStorageValue(storageGB);
+    setCustomValue("");
+  }, [updateStorageValue]);
 
   const handleCustomSubmit = useCallback(() => {
     const customGB = parseFloat(customValue);
@@ -37,9 +45,8 @@ export default function StorageSelector({
       return;
     }
 
-    setSelectedStorage(customGB);
-    onStorageSelected(customGB);
-  }, [customValue, onStorageSelected]);
+    updateStorageValue(customGB);
+  }, [customValue, updateStorageValue]);
 
   return (
     <div className="flex flex-col items-center gap-4 w-full p-6 bg-[hsla(154,29%,32%,1)] rounded-2xl border border-white/30">
@@ -118,8 +125,8 @@ export default function StorageSelector({
             <button
               onClick={handleCustomSubmit}
               disabled={!customValue || parseFloat(customValue) <= 0}
-              className="h-8 px-3 py-1 rounded-md border border-white/30 
-                       text-white/80 text-xs hover:border-white/50 hover:bg-white/5 
+              className="h-8 px-2 py-0.5 rounded-md border border-white/30 
+                       text-white/80 text-[10px] hover:border-white/50 hover:bg-white/5 
                        transition-all duration-200 cursor-pointer
                        disabled:opacity-30 disabled:cursor-not-allowed"
               style={{
@@ -132,8 +139,8 @@ export default function StorageSelector({
               onClick={() => {
                 setCustomValue("");
               }}
-              className="h-8 px-3 py-1 rounded-md border border-white/30 
-                       text-white/60 text-xs hover:border-white/50 hover:bg-white/5 
+              className="h-8 px-2 py-0.5 rounded-md border border-white/30 
+                       text-white/60 text-[10px] hover:border-white/50 hover:bg-white/5 
                        transition-all duration-200 cursor-pointer"
               style={{
                 fontFamily: 'Akzidenz-Grotesk Pro'

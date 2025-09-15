@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import WelcomeComponent from "renderer/components/WelcomeComponent";
 import ShelterInitialization from "renderer/components/initializing";
 import Cleanup from "renderer/components/Cleanup";
+import FreeSpaceExhausted from "renderer/components/ui/FreeSpaceExhausted";
 import { logger } from "renderer/lib/logger";
 import AboutPopup from "renderer/components/about-popup";
 
@@ -11,6 +12,7 @@ import { useDownloadManager, DownloadManager } from "renderer/hooks/useDownloadM
 import StorageSelector from "renderer/components/storage-selector";
 import { buttonVariants } from "renderer/tailwind-pattern";
 import { WINDOW_DIMENSIONS } from "shared/constants";
+import { GIGA_BYTES } from "lib/electron-app/utils/units";
 
 // Header
 const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
@@ -28,14 +30,15 @@ export function MainScreen() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [displayedPath, setDisplayedPath] = useState<string | null>(null);
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
-  const [freeSpace, setFreeSpace] = useState<number>(0);
+  const [diskFreeSpace, setDiskFreeSpace] = useState<number>(0);
   const [allocatedStorage, setAllocatedStorage] = useState<number>(10); // Default 10GB
   const [showStorageSelector, setShowStorageSelector] = useState(false);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
+  const [isFreeSpaceExhausted, setIsFreeSpaceExhausted] = useState(false);
   const downloadManager = useDownloadManager();
 
-  const handleInitializationComplete = useCallback((freeBytes: number) => {
-    setFreeSpace(freeBytes);
+  const handleInitializationComplete = useCallback(async (freeBytes: number) => {
+    setDiskFreeSpace(freeBytes);
 
     if (!selectedPath) {
       return;
@@ -43,7 +46,7 @@ export function MainScreen() {
 
     setIsRunning(true);
 
-    downloadManager.startDownload(selectedPath, freeBytes);
+    downloadManager.startDownload(selectedPath, await window.App.getRemainingFreeSpace());
   }, [selectedPath, downloadManager, allocatedStorage]);
 
   const handleStorageSelected = useCallback((storageGB: number) => {
@@ -78,12 +81,32 @@ export function MainScreen() {
       setIsRunning(false);
     });
 
+    const freeSpaceExhausted = window.App.onFreeSpaceExhausted(() => {
+      setIsHosting(false);
+      setIsInitializing(false);
+      setIsRunning(false);
+      setIsFreeSpaceExhausted(true);
+    });
+
     return () => {
       cleanupStateChange();
       cleanupComplete();
       cleanupError();
+      freeSpaceExhausted();
     };
   }, [handleInitializationComplete]);
+
+  const handleAllocateMoreSpace = () => {
+    setIsFreeSpaceExhausted(false);
+
+    toggleStorageSelector();
+  };
+
+  const handleSelectNewPath = () => {
+    setIsFreeSpaceExhausted(false);
+
+    handleSelectFolder();
+  };
 
   // Resize window
   useEffect(() => {
@@ -140,12 +163,19 @@ export function MainScreen() {
     return '.../' + path.split('/').slice(-1)[0];
   }
 
+  // Download path init
   useEffect(() => {
     window.App.getDownloadPath().then((path) => {
       if (path) {
         setSelectedPath(path);
         setDisplayedPath(shortenPathForDisplay(path));
       }
+    });
+  }, []);
+
+  useEffect(() => {
+    window.App.getStorageAllocation().then((storageAllocation) => {
+      setAllocatedStorage(storageAllocation / GIGA_BYTES);
     });
   }, []);
 
@@ -190,6 +220,7 @@ export function MainScreen() {
     setIsInitializing(false);
     setIsRunning(false);
     setIsCleaningUp(false);
+    setIsFreeSpaceExhausted(false);
   };
 
   const toggleAboutPopup = () => {
@@ -316,6 +347,11 @@ export function MainScreen() {
       <div className="flex-grow flex flex-col space-y-4 pt-4">
         {isCleaningUp ? (
           <Cleanup onCleanupComplete={handleCleanupComplete} />
+        ) : isFreeSpaceExhausted ? (
+          <FreeSpaceExhausted
+            onAllocateMoreSpace={handleAllocateMoreSpace}
+            onSelectNewPath={handleSelectNewPath}
+          />
         ) : !isInitializing ? (
           <>
             <div>
