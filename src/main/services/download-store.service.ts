@@ -33,8 +33,10 @@ class DownloadStoreService {
   private computeTotalDownloadedFileSize(downloadedFiles: DownloadedFilesStore): number {
     let totalSize = 0;
     Object.values(downloadedFiles).forEach((file) => {
-      const fileStats = fs.statSync(file.filePath);
-      totalSize += fileStats.size;
+      if (fs.existsSync(file.filePath)) {
+        const fileStats = fs.statSync(file.filePath);
+        totalSize += fileStats.size;
+      }
     });
     return totalSize;
   }

@@ -12,8 +12,9 @@ export const WINDOW_DIMENSIONS = {
   MAIN: {
     WIDTH: 240,
     HEIGHT: {
-      COLLAPSED: 390,
-      EXPANDED: 675,
+      COLLAPSED: 410,
+      INTERMEDIATE: 535,
+      EXPANDED: 690,
     },
   },
 } as const

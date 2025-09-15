@@ -1,9 +1,9 @@
 import { ipcMain } from "electron";
-import { downloadFile, DownloadProgress } from "main/services/download-dummy.service";
+import { downloadService, DownloadProgress } from "main/services/download-dummy.service";
 
 export function registerDownloadDummy() {
     ipcMain.handle("download-file", (event, url: string, downloadPath: string, fileName: string, defaultFileNamePrefix: string) => {
-        return downloadFile(
+        return downloadService.downloadFile(
             url,
             downloadPath,
             fileName,

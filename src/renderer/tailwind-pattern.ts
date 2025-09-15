@@ -5,3 +5,7 @@ export const buttonVariants = {
 export const leadingVariants = {
   title: "font-semibold text-lg leading-normal text-center text-white",
 }
+
+export const selectOptionVariants = {
+  option: "text-white bg-[#737372]",
+} as const;
