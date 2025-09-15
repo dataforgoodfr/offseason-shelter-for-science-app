@@ -235,16 +235,18 @@ class ClimateDataService {
     downloadPath: string,
     rescuerId: number,
     callbacks?: DownloadProgressCallback
-  ): Promise<Asset[]> {
+  ): Promise<{ completedAssets: Asset[]; failedAssets: Asset[] }> {
     
     const completedAssets: Asset[] = []
+    const failedAssets: Asset[] = []
+
     callbacks?.onStatusChange?.('downloading now')
 
     for (let i = 0; i < assets.length; i++) {
       // If free space exhausted, stop the download
       if (!await window.App.checkRemainingFreeSpace()) {
         callbacks?.onError?.('Free space exhausted', assets[i]);
-        return completedAssets
+        return { completedAssets, failedAssets }
       }
 
       const asset = assets[i]
@@ -296,6 +298,7 @@ class ClimateDataService {
                 logger.info('Sending file status to rescue API', { name: asset.name })
               }
 
+              /** @todo broija 2025/09/12 : Handle retries in case of error */
               await this.sendStatusUpdate({
                 rescuer_id: 1,
                 message: "Mise à jour de l'état",
@@ -308,14 +311,13 @@ class ClimateDataService {
         }
 
         if (result.success) {
-
           asset.status = 'SUCCESS'
          
           completedAssets.push(asset)
           callbacks?.onFileComplete?.(asset, result.magnetLink)
         } else {
           asset.status = 'ABORTED'
-          completedAssets.push(asset)
+          failedAssets.push(asset)
           callbacks?.onError?.(result.error || 'Download failed', asset)
         }
 
@@ -325,7 +327,7 @@ class ClimateDataService {
       } catch (error: any) {
         console.error(`Erreur générale ${asset.name}:`, error)
         asset.status = 'ABORTED'
-        completedAssets.push(asset)
+        failedAssets.push(asset)
         callbacks?.onError?.(error?.message || 'Unknown error', asset)
       }
     }
@@ -335,14 +337,14 @@ class ClimateDataService {
     callbacks?.onStatusChange?.('uploading')
     callbacks?.onComplete?.(completedAssets)
 
-    return completedAssets
+    return { completedAssets, failedAssets }
   }
 
   async fetchAndDownload(
     payload: DispatchRequestPayload,
     downloadPath: string,
     callbacks?: DownloadProgressCallback
-  ): Promise<Asset[]> {
+  ): Promise<{ completedAssets: Asset[]; failedAssets: Asset[] }> {
     try {
       callbacks?.onStatusChange?.('downloading now')
       

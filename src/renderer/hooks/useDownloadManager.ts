@@ -29,8 +29,9 @@ export function useDownloadManager() : DownloadManager {
 
   const [concurrentDownloadCount, setConcurrentDownloadCount] = useState(0);
 
-  const startDownload = useCallback(async (downloadPath: string, freeSpace: number) => {
+  const nextDownload = useCallback(async (downloadPath: string, freeSpace: number): Promise<boolean> => {
     setConcurrentDownloadCount(prev => prev + 1);
+    let result = false;
 
     try {
       setState(prev => ({
@@ -45,12 +46,13 @@ export function useDownloadManager() : DownloadManager {
         name: "Climate Rescue Node",
         description: "Automated data rescue system",
         free_space_gb: freeSpace / GIGA_BYTES,
-        node_id: "1"
+        node_id: "1" // broija 2025/09/12 : should be a number
       };
 
       const callbacks: DownloadProgressCallback = {
         onProgress: (currentProgress: number, currentIndex: number, total: number) => {
           if (total > 0) {
+            console.log('Download progress', { currentProgress, total });
             const progressPercent = currentProgress / total;
             const newProgress = Math.floor(progressPercent * 100);
             setState(prev => ({
@@ -104,10 +106,14 @@ export function useDownloadManager() : DownloadManager {
       const remainingFreeSpace = await window.App.checkRemainingFreeSpace();
       if (!remainingFreeSpace) {
         callbacks.onError?.('Free space exhausted', undefined);
-        return;
+        return false;
       }
 
-      await climateDataService.fetchAndDownload(payload, downloadPath, callbacks);
+      const { completedAssets, failedAssets } = await climateDataService.fetchAndDownload(payload, downloadPath, callbacks);
+
+      /** @todo broija 2025/09/12 : handle failed assets */
+
+      result = completedAssets.length !== 0;
     } catch (error: any) {
       logger.error("Error encountered during download process", { error: error.message });
       setState(prev => ({
@@ -116,9 +122,17 @@ export function useDownloadManager() : DownloadManager {
           isRunning: false
       }));
     } finally {
-      logger.info('Rescue done !');
+      return result;
     }
   }, []);
+
+  const startDownload = useCallback(async (downloadPath: string, freeSpace: number) => {
+    // While there are assets to download, keep on downloading
+    while (await nextDownload(downloadPath, freeSpace)) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    logger.info('End of download process !');
+  }, [nextDownload]);
 
   const cancelDownload = useCallback(() => {
     if (concurrentDownloadCount > 0) {

@@ -8,7 +8,7 @@ import AboutPopup from "renderer/components/about-popup";
 
 // broija 2025/08/25 : dissociated download logic from graphic features
 import LoadingBars from "renderer/components/ui/loading-bars/LoadingBarsDisplay";
-import { useDownloadManager, DownloadManager } from "renderer/hooks/useDownloadManager";
+import { useDownloadManager } from "renderer/hooks/useDownloadManager";
 import StorageSelector from "renderer/components/storage-selector";
 import { buttonVariants } from "renderer/tailwind-pattern";
 import { WINDOW_DIMENSIONS } from "shared/constants";
