@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { ErrorHandlingOptions } from 'main/services/rescue-api-service';
 
 declare global {
   interface Window {
@@ -95,8 +96,8 @@ const API = {
   getBandwidthAllocation: () => ipcRenderer.invoke('get-bandwidth-allocation'),
 
  // Nouvelles méthodes pour éviter CORS
-  rescueApiCall: (route: string, options: any) => 
-    ipcRenderer.invoke('rescue-api:call', route, options),
+  rescueApiCall: (route: string, options: any, errorHandlingOptions?: ErrorHandlingOptions) => 
+    ipcRenderer.invoke('rescue-api:call', route, options, errorHandlingOptions),
 
   checkFileExists: (filePath: string) => 
     ipcRenderer.invoke('check-file-exists', filePath),
