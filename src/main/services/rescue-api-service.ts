@@ -87,9 +87,12 @@ class RescueApiService {
         }
     }
 
-    private async handleRetry(route: string, options: any, fallbackResult: CallResult,errorHandlingOptions?: ErrorHandlingOptions): Promise<CallResult> {
+    private async handleRetry(route: string, options: any, fallbackResult: CallResult, errorHandlingOptions?: ErrorHandlingOptions): Promise<CallResult> {
+        // If caller requests a retry
         if (errorHandlingOptions && errorHandlingOptions.retry > 0) {
+            // Jitter spreads the delay to avoid overwhelming the server
             if (errorHandlingOptions.retryDelayJitter === true) {
+                // Set default values if not provided
                 if (!errorHandlingOptions.retryDelay) {
                     errorHandlingOptions.retryDelay = 5000;
                 }
@@ -100,18 +103,22 @@ class RescueApiService {
                     errorHandlingOptions.retryDelayMax = 9000;
                 }
 
-                let random = Math.random() * errorHandlingOptions.retryDelay;
+                // Compute a random delta between 0 and the retry delay
+                let randomDelta = Math.random() * errorHandlingOptions.retryDelay;
             
-                // If first digit after decimal point is odd, random is negative
-                if (Math.floor(random * 10) % 2) {
-                    random = -random;
+                /** If first digit after decimal point is odd, randomDelta is negative.
+                  Hence, the computed delay is either increased or decreased by a random amount. */
+                if (Math.floor(randomDelta * 10) % 2) {
+                    randomDelta = -randomDelta;
                 }
     
-                errorHandlingOptions.retryDelay += random;
+                errorHandlingOptions.retryDelay += randomDelta;
     
+                // Ensure the retry delay is not greater than the maximum retry delay
                 errorHandlingOptions.retryDelay = Math.min(
                     errorHandlingOptions.retryDelay, errorHandlingOptions.retryDelayMax
                 );
+                // Ensure the retry delay is not less than the minimum retry delay
                 errorHandlingOptions.retryDelay = Math.max(
                     errorHandlingOptions.retryDelay, errorHandlingOptions.retryDelayMin
                 );
