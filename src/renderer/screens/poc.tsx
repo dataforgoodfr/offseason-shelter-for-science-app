@@ -39,11 +39,11 @@ export function MainScreen() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [displayedPath, setDisplayedPath] = useState<string | null>(null);
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
-  
+
   const [diskFreeSpace, setDiskFreeSpace] = useState<number>(0);
   const [allocatedStorage, setAllocatedStorage] = useState<number>(10); // Default 10GB
   const [showStorageSelector, setShowStorageSelector] = useState(false);
-  
+
   const [allocatedBandwidth, setAllocatedBandwidth] = useState<number | undefined>(undefined);
   const [bandwidthUnit, setBandwidthUnit] = useState<BandwidthUnit | undefined>(undefined);
   const [showBandwidthLimiter, setShowBandwidthLimiter] = useState(false);
@@ -311,93 +311,98 @@ export function MainScreen() {
       }}>
 
       {/* Header avec zone de déplacement */}
-      <div className="s4s-header flex-shrink-0">
-        {/* Zone de déplacement - toute la largeur du header */}
-        <div className="flex justify-between items-rigth">
-        </div>
-        <div className="flex justify-between items-center">
-          <div
-            className="flex-1 h-full cursor-move flex items-center"
-            onMouseDown={(e) => {
-              if (e.button === 0) { // Clic gauche seulement
-                // Déplacer la fenêtre directement
-                e.preventDefault();
-                const startX = e.clientX;
-                const startY = e.clientY;
+      <div
+        className="s4s-header relative flex-shrink-0 h-[24px] select-none"
+        onMouseDown={(e) => {
+          // Drag uniquement au clic gauche
+          if (e.button !== 0) return;
 
-                const handleMouseMove = (moveEvent: MouseEvent) => {
-                  const deltaX = moveEvent.clientX - startX;
-                  const deltaY = moveEvent.clientY - startY;
-                  window.App.moveWindow(deltaX, deltaY);
-                };
+          // Ne pas drag si l'on clique sur un élément "cliquable"
+          const target = e.target as HTMLElement;
+          if (target.closest('[data-no-drag="true"]')) return;
 
-                const handleMouseUp = () => {
-                  document.removeEventListener('mousemove', handleMouseMove);
-                  document.removeEventListener('mouseup', handleMouseUp);
-                };
+          e.preventDefault();
+          const startX = e.clientX;
+          const startY = e.clientY;
 
-                document.addEventListener('mousemove', handleMouseMove);
-                document.addEventListener('mouseup', handleMouseUp);
-              }
-            }}
-          >
-            <img
-              src={s4sLogoUrl}
-              alt="S4S Logo"
-              className="w-full h-[20px] pointer-events-none"
-            />
+          const handleMouseMove = (moveEvent: MouseEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const deltaY = moveEvent.clientY - startY;
+            window.App.moveWindow(deltaX, deltaY);
+          };
+
+          const handleMouseUp = () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+          };
+
+          document.addEventListener('mousemove', handleMouseMove);
+          document.addEventListener('mouseup', handleMouseUp);
+        }}
+      >
+        {/* Bandeau de contenu en z-10 pour les contrôles */}
+        <div className="relative z-10 flex items-center justify-between h-full">
+          {/* Gauche : settings */}
+          <div className="flex items-center" data-no-drag="true">
+            <button
+              className="gear-icon w-[24px] h-[24px] cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={toggleAboutPopup}
+              aria-label="Open settings"
+              title="Settings"
+            >
+              <img src={gearSixUrl} alt="Gear Six" className="w-full h-full" />
+            </button>
+            {/* About Popup */}
+            {isAboutPopupOpen && (
+              <AboutPopup
+                onStopHosting={() => {
+                  handleStopHosting();
+                  setIsAboutPopupOpen(false);
+                }}
+                onContactUs={() => {
+                  setIsAboutPopupOpen(false);
+                }}
+                onGoToWebsite={() => {
+                  setIsAboutPopupOpen(false);
+                }}
+              />
+            )}
           </div>
 
-          {/* Contrôles à droite */}
-          <div className="flex items-center gap-2">
-            {/* Bouton settings */}
+          {/* Droite : contrôles fenêtre */}
+          <div className="flex items-center" data-no-drag="true">
             <button
-              className="gear-icon w-[16px] h-[16px] cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={toggleAboutPopup}
-            >
-              <img
-                src={gearSixUrl}
-                alt="Gear Six"
-                className="w-full h-full"
-              />
-            </button>
-            {/* Bouton minimize */}
-            <button
-              className="w-4 h-4 rounded-full bg-transparent hover:bg-white/10 transition-colors flex items-center justify-center"
+              className="w-[16px] h-[16px] rounded-full bg-transparent hover:bg-white/10 transition-colors flex items-center justify-center mr-3"
               onClick={() => window.App.minimize()}
+              aria-label="Minimize"
+              title="Minimize"
             >
-              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-[16px] h-[16px] text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M20 14H4v-2h16v2z" />
               </svg>
             </button>
-            {/* Bouton fermer */}
             <button
-              className="w-4 h-4 rounded-full bg-transparent hover:bg-white/10 transition-colors flex items-center justify-center"
+              className="w-[16px] h-[16px] rounded-full bg-transparent hover:bg-white/10 transition-colors flex items-center justify-center"
               onClick={() => window.App.close()}
+              aria-label="Close"
+              title="Close"
             >
-              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-[16px] h-[16px] text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
               </svg>
             </button>
           </div>
         </div>
-      </div>
 
-      {/* About Popup */}
-      {isAboutPopupOpen && (
-        <AboutPopup
-          onStopHosting={() => {
-            handleStopHosting();
-            setIsAboutPopupOpen(false);
-          }}
-          onContactUs={() => {
-            setIsAboutPopupOpen(false);
-          }}
-          onGoToWebsite={() => {
-            setIsAboutPopupOpen(false);
-          }}
-        />
-      )}
+        {/* Logo centré absolument, sans interférer avec les clics */}
+        <div className="absolute inset-0 grid place-items-center pointer-events-none">
+          <img
+            src={s4sLogoUrl}
+            alt="S4S Logo"
+            className="h-[20px] max-w-[60%] object-contain pointer-events-none"
+          />
+        </div>
+      </div>
 
       {/* Contenu principal - prend tout l'espace disponible */}
       <div className="flex-grow flex flex-col space-y-4 pt-4">
