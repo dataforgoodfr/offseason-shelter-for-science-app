@@ -68,7 +68,6 @@ const API = {
   downloadFile: (url: string, downloadPath: string, filename?: string, defaultFileNamePrefix?: string) =>
     ipcRenderer.invoke('download-file', url, downloadPath, filename, defaultFileNamePrefix),
   
-
    // Obtenir l'espace disque disponible (libre) pour un chemin donné
   getFreeSpace: (path: string) => ipcRenderer.invoke('get-free-space', path),
 

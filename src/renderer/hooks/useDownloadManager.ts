@@ -52,7 +52,6 @@ export function useDownloadManager() : DownloadManager {
       const callbacks: DownloadProgressCallback = {
         onProgress: (currentProgress: number, currentIndex: number, total: number) => {
           if (total > 0) {
-            console.log('Download progress', { currentProgress, total });
             const progressPercent = currentProgress / total;
             const newProgress = Math.floor(progressPercent * 100);
             setState(prev => ({
@@ -113,7 +112,7 @@ export function useDownloadManager() : DownloadManager {
 
       /** @todo broija 2025/09/12 : handle failed assets */
 
-      result = completedAssets.length !== 0;
+      result = completedAssets?.length !== 0;
     } catch (error: any) {
       logger.error("Error encountered during download process", { error: error.message });
       setState(prev => ({
