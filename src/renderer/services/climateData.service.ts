@@ -18,7 +18,7 @@ class ClimateDataService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-      })
+      }, { retry: 3 })
       logger.debug("[RESCUE API] Download tasks response", { response });
       if (!response.success) {
         throw new Error(`API Error: ${response.error || 'Unknown error'}`)
@@ -41,7 +41,7 @@ class ClimateDataService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-      })
+      }, { retry: 3 })
       if (!response.success) {
         throw new Error(`Status Update Error: ${response.error || 'Unknown error'}`)
       }
