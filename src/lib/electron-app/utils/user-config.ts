@@ -4,12 +4,17 @@ import * as os from 'os'
 import { GIGA_BYTES } from "./units"
 
 const DEFAULT_STORAGE_ALLOCATION = 50 * GIGA_BYTES
-const DEFAULT_BANDWIDTH_ALLOCATION = 10
+const DEFAULT_BANDWIDTH_ALLOCATION = undefined
 
 class UserConfig {
     private configPath = path.join(os.homedir(), '.shelter-config.json');
+    private cache: Record<string, number | undefined> = {};
 
     private getValue(key: string) {
+        if (this.cache[key]) {
+            return this.cache[key];
+        }
+
         let result = null;
         try {
             const configPath = this.configPath;
@@ -23,10 +28,13 @@ class UserConfig {
         } catch (error) {
             console.error('User config get value:', error)
         }
+        this.cache[key] = result;
         return result;
     }
 
-    private setValue(key: string, value: number) {
+    private setValue(key: string, value: number | undefined) {
+        this.cache[key] = value;
+
         try {
             const configPath = this.configPath;
             let config: any = {};
@@ -51,11 +59,11 @@ class UserConfig {
         this.setValue('storageAllocation', value)
     }
 
-    public getBandwidthAllocation() {
+    public getBandwidthAllocation(): number | undefined {
         return this.getValue('bandwidthAllocation') || DEFAULT_BANDWIDTH_ALLOCATION
     }
 
-    public setBandwidthAllocation(value: number) {
+    public setBandwidthAllocation(value: number | undefined) {
         this.setValue('bandwidthAllocation', value)
     }
 }

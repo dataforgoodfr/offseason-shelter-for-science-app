@@ -10,9 +10,10 @@ import AboutPopup from "renderer/components/about-popup";
 import LoadingBars from "renderer/components/ui/loading-bars/LoadingBarsDisplay";
 import { useDownloadManager } from "renderer/hooks/useDownloadManager";
 import StorageSelector from "renderer/components/storage-selector";
+import { BandwidthLimiter, BandwidthUnit } from "renderer/components/ui/bandwidth-limiter";
 import { buttonVariants } from "renderer/tailwind-pattern";
 import { WINDOW_DIMENSIONS } from "shared/constants";
-import { GIGA_BYTES } from "lib/electron-app/utils/units";
+import { KILO_BYTES, MEGA_BYTES, GIGA_BYTES } from "lib/electron-app/utils/units";
 
 // Header
 const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
@@ -23,6 +24,14 @@ const heartIconUrl = new URL('../assets/icons/heart.svg', import.meta.url).href;
 // The "App" comes from the context bridge in preload/index.ts
 const { App } = window;
 
+function getBandwidthLimitBps(bandwidthBps: number | undefined, unit: BandwidthUnit) {
+  if (bandwidthBps === undefined || unit === undefined) {
+    return undefined;
+  }
+
+  return Math.floor(bandwidthBps * (unit === 'KB/s' ? KILO_BYTES : MEGA_BYTES));
+}
+
 export function MainScreen() {
   const [isHosting, setIsHosting] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -30,9 +39,15 @@ export function MainScreen() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [displayedPath, setDisplayedPath] = useState<string | null>(null);
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
+  
   const [diskFreeSpace, setDiskFreeSpace] = useState<number>(0);
   const [allocatedStorage, setAllocatedStorage] = useState<number>(10); // Default 10GB
   const [showStorageSelector, setShowStorageSelector] = useState(false);
+  
+  const [allocatedBandwidth, setAllocatedBandwidth] = useState<number | undefined>(undefined);
+  const [bandwidthUnit, setBandwidthUnit] = useState<BandwidthUnit | undefined>(undefined);
+  const [showBandwidthLimiter, setShowBandwidthLimiter] = useState(false);
+
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [isFreeSpaceExhausted, setIsFreeSpaceExhausted] = useState(false);
   const downloadManager = useDownloadManager();
@@ -46,7 +61,10 @@ export function MainScreen() {
 
     setIsRunning(true);
 
-    downloadManager.startDownload(selectedPath, await window.App.getRemainingFreeSpace());
+    downloadManager.startDownload(
+      selectedPath,
+      await window.App.getRemainingFreeSpace()
+    );
   }, [selectedPath, downloadManager, allocatedStorage]);
 
   const handleStorageSelected = useCallback((storageGB: number) => {
@@ -56,8 +74,25 @@ export function MainScreen() {
   const toggleStorageSelector = useCallback(() => {
     const newState = !showStorageSelector;
     setShowStorageSelector(newState);
-
+    if (newState) {
+      setShowBandwidthLimiter(false);
+    }
   }, [showStorageSelector]);
+
+  const handleBandwidthLimiterSelected = useCallback((bandwidth?: number, bandwidthUnit?: BandwidthUnit) => {
+    setAllocatedBandwidth(bandwidth);
+    setBandwidthUnit(bandwidthUnit);
+    window.App.setBandwidthAllocation(getBandwidthLimitBps(bandwidth, bandwidthUnit));
+  }, []);
+
+  const toggleBandwidthLimiter = useCallback(() => {
+    const newState = !showBandwidthLimiter;
+    setShowBandwidthLimiter(newState);
+
+    if (newState) {
+      setShowStorageSelector(false);
+    }
+  }, [showBandwidthLimiter]);
 
   // Setup IPC event listeners for init state management
   useEffect(() => {
@@ -110,8 +145,15 @@ export function MainScreen() {
 
   // Resize window
   useEffect(() => {
-    window.App.expandMainWindowHeight(showStorageSelector)
-  }, [showStorageSelector]);
+    let expansionLevel = 0;
+    if (showBandwidthLimiter) {
+      expansionLevel = 1;
+    } else if (showStorageSelector) {
+      expansionLevel = 2;
+    }
+
+    window.App.expandMainWindowHeight(expansionLevel)
+  }, [showStorageSelector, showBandwidthLimiter]);
 
   const handleSelectFolder = async () => {
     try {
@@ -142,7 +184,7 @@ export function MainScreen() {
 
     if (process.platform === 'win32') {
       // Fix window sizing issue on Windows
-      window.App.expandMainWindowHeight(false);
+      window.App.expandMainWindowHeight(0);
     }
   }, []);
 
@@ -174,8 +216,22 @@ export function MainScreen() {
   }, []);
 
   useEffect(() => {
+    // Load settings
     window.App.getStorageAllocation().then((storageAllocation) => {
       setAllocatedStorage(storageAllocation / GIGA_BYTES);
+    });
+
+    window.App.getBandwidthAllocation().then((bandwidthAllocation) => {
+      // Compute display value and unit
+      if (bandwidthAllocation) {
+        if (bandwidthAllocation > MEGA_BYTES) {
+          setBandwidthUnit('MB/s');
+          setAllocatedBandwidth(bandwidthAllocation / MEGA_BYTES);
+        } else {
+          setBandwidthUnit('KB/s');
+          setAllocatedBandwidth(bandwidthAllocation / KILO_BYTES);
+        }
+      }
     });
   }, []);
 
@@ -392,7 +448,7 @@ export function MainScreen() {
               )}
             </button>
 
-            {/* Storage configuration button */}
+            {/* Storage config button */}
             <button
               className={`${buttonVariants.primary} ${showStorageSelector && 'border-white/50 bg-white/5'}`}
               onClick={toggleStorageSelector}
@@ -402,14 +458,37 @@ export function MainScreen() {
               </span>
               <div className="h-[19px] flex items-center justify-center rounded-full py-1.5 px-1.5 bg-[#737372] flex-shrink-0 ml-2">
                 <span className="text-akz-gro text-[10px] font-medium text-white">
-                  {showStorageSelector ? "Close" : "Configure"}
+                  {showStorageSelector ? "Close" : "..."}
                 </span>
               </div>
             </button>
-            {showStorageSelector && <StorageSelector
-              onStorageSelected={handleStorageSelected}
-              defaultSelection={allocatedStorage}
-            />}
+            {showStorageSelector && (
+              <StorageSelector
+                onStorageSelected={handleStorageSelected}
+                defaultSelection={allocatedStorage}
+              />
+            )}
+            {/* Bandwidth config button */}
+            <button
+              className={`${buttonVariants.primary} ${showBandwidthLimiter && 'border-white/50 bg-white/5'}`}
+              onClick={toggleBandwidthLimiter}
+            >
+              <span className="text-akz-gro text-xs text-white/80">
+                Bandwidth: {bandwidthUnit ? `${allocatedBandwidth} ${bandwidthUnit}` : '∞'}
+              </span>
+              <div className="h-[19px] flex items-center justify-center rounded-full py-1.5 px-1.5 bg-[#737372] flex-shrink-0 ml-2">
+                <span className="text-akz-gro text-[10px] font-medium text-white">
+                  {showBandwidthLimiter ? "Close" : "..."}
+                </span>
+              </div>
+            </button>
+            {showBandwidthLimiter && (
+              <BandwidthLimiter
+                onBandwidthSelected={handleBandwidthLimiterSelected}
+                defaultValue={allocatedBandwidth}
+                defaultUnit={bandwidthUnit}
+              />
+            )}
 
             {/* Storage configuration and start hosting buttons */}
             {!isRunning && !isHosting && (

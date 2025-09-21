@@ -87,8 +87,8 @@ const API = {
   // Save prefs
   setStorageAllocation: (storageBytes: number) => 
     ipcRenderer.invoke('set-storage-allocation', storageBytes),
-  setBandwidthAllocation: (percentage: number) => 
-    ipcRenderer.invoke('set-bandwidth-allocation', percentage),
+  setBandwidthAllocation: (bandwidthBps: number | undefined) => 
+    ipcRenderer.invoke('set-bandwidth-allocation', bandwidthBps),
 
   // Récupérer les préférences sauvegardées
   getStorageAllocation: () => ipcRenderer.invoke('get-storage-allocation'),
@@ -124,7 +124,7 @@ const API = {
   },
 
   // Window height control
-  expandMainWindowHeight: (isExpanded: boolean) => ipcRenderer.invoke('window:expand-height', isExpanded),
+  expandMainWindowHeight: (expansionLevel: number) => ipcRenderer.invoke('window:expand-height', expansionLevel),
   setWindowHeight: (height: number) => ipcRenderer.invoke('window:set-height', height),
   
   // Window control methods

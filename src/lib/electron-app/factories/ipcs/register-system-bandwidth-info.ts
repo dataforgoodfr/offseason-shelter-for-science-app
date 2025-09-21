@@ -176,8 +176,8 @@ export function registerSystemInfo() {
     userConfig.setStorageAllocation(storageBytes);
   })
 
-  ipcMain.handle('set-bandwidth-allocation', async (event, percentage: number) => {
-    userConfig.setBandwidthAllocation(percentage);
+  ipcMain.handle('set-bandwidth-allocation', async (event, bandwidthBps: number) => {
+    userConfig.setBandwidthAllocation(bandwidthBps);
   })
 
   ipcMain.handle('get-storage-allocation', async () => {
