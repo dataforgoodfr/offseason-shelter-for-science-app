@@ -9,6 +9,13 @@ export function getDownloadPath(): string | undefined {
   return store.get("downloadPath") as string | undefined;
 }
 
+export function setIsFirstLaunch(isFirst: boolean) {
+  store.set("isFirstLaunch", isFirst);
+}
+export function getIsFirstLaunch(): boolean {
+  return store.get("isFirstLaunch", true) as boolean;
+}
+
 // === SEEDING ===
 interface SeedingInfo {
   magnetURI: string;

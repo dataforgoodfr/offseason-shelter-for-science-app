@@ -7,7 +7,7 @@ import { LoggerWindow } from "./windows/logger";
 
 import { registerFolderPicker } from "lib/electron-app/factories/ipcs/register-folter-picker";
 import { registerDownloadDataset } from "lib/electron-app/factories/ipcs/register-download-dataset";
-import { registerManageDownloadPath } from "lib/electron-app/factories/ipcs/register-manage-download-path";
+import { registerStoreHandler } from "lib/electron-app/factories/ipcs/register-store-handler";
 import { registerSeedingManagement } from "lib/electron-app/factories/ipcs/register-seeding-management";
 import { loggerService } from "./services/logger";
 import { registerDownloadStore } from "lib/electron-app/factories/ipcs/register-download-store";
@@ -23,7 +23,7 @@ makeAppWithSingleInstanceLock(async () => {
 
   // Register IPCs
   registerFolderPicker();
-  registerManageDownloadPath();
+  registerStoreHandler();
   registerDownloadDataset();
   registerSeedingManagement();
   registerDownloadStore();

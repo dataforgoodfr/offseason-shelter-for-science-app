@@ -13,8 +13,13 @@ const API = {
   openFolderDialog: async (): Promise<string | null> => {
     return await ipcRenderer.invoke('open-folder-dialog');
   },
-  setDownloadPath: (path: string) => ipcRenderer.invoke('set-download-path', path),
-  getDownloadPath: () => ipcRenderer.invoke('get-download-path'),
+  
+  // STORE
+  setDownloadPath: (path: string) => ipcRenderer.invoke('store:setDownloadPath', path),
+  getDownloadPath: () => ipcRenderer.invoke('store:getDownloadPath'),
+  isFirstLaunch: () => ipcRenderer.invoke('store:getIsFirstLaunch'),
+  setIsFirstLaunch: (isFirst: boolean) => ipcRenderer.invoke('store:setIsFirstLaunch', isFirst),
+
   downloadDataset: (datasetId: string) => ipcRenderer.invoke('download-dataset', datasetId),
   onDownloadProgress: (callback: (progress: number, speed: string, eta: string) => void) => {
     ipcRenderer.on('download-progress', (_, progress, speed, eta) => callback(progress, speed, eta))

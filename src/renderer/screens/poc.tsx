@@ -14,11 +14,20 @@ import { BandwidthLimiter, BandwidthUnit } from "renderer/components/ui/bandwidt
 import { buttonVariants } from "renderer/tailwind-pattern";
 import { WINDOW_DIMENSIONS } from "shared/constants";
 import { KILO_BYTES, MEGA_BYTES, GIGA_BYTES } from "lib/electron-app/utils/units";
+import { FirstLaunch } from "renderer/components/First-launch";
+
+type AppStatus =
+  | 'first_time'           // État initial, rien n'est configuré
+  | 'ready'          // Chemin sélectionné, prêt à démarrer
+  | 'initializing'   // En cours d'initialisation
+  | 'running'        // En cours d'exécution/téléchargement
+  | 'cleaning'       // En cours de nettoyage
+  | 'space_exhausted' // Espace disque épuisé
+  | 'error';         // État d'erreur
 
 // Header
 const s4sLogoUrl = new URL('../assets/brand/logo.svg', import.meta.url).href;
 const gearSixUrl = new URL('../assets/icons/gear_six.svg', import.meta.url).href;
-const folderIconUrl = new URL('../assets/icons/path.svg', import.meta.url).href;
 const hostingIconUrl = new URL('../assets/icons/hosting.svg', import.meta.url).href;
 const heartIconUrl = new URL('../assets/icons/heart.svg', import.meta.url).href;
 // The "App" comes from the context bridge in preload/index.ts
@@ -33,6 +42,10 @@ function getBandwidthLimitBps(bandwidthBps: number | undefined, unit: BandwidthU
 }
 
 export function MainScreen() {
+  // État principal
+  const [status, setStatus] = useState<AppStatus>('first_time');
+  const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
+
   const [isHosting, setIsHosting] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -51,6 +64,19 @@ export function MainScreen() {
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [isFreeSpaceExhausted, setIsFreeSpaceExhausted] = useState(false);
   const downloadManager = useDownloadManager();
+
+  // Fonctions utilitaires pour la gestion d'état
+  const updateStatus = useCallback((newStatus: AppStatus) => {
+    logger.info('Status change', { from: status, to: newStatus });
+    setStatus(newStatus);
+  }, [status]);
+  // Met à jour le status en fonction du chemin sélectionné
+  useEffect(() => {
+    if (selectedPath && status === 'first_time') {
+      updateStatus('ready');
+    }
+  }, [selectedPath, status, updateStatus]);
+
 
   const handleInitializationComplete = useCallback(async (freeBytes: number) => {
     setDiskFreeSpace(freeBytes);
@@ -205,34 +231,44 @@ export function MainScreen() {
     return '.../' + path.split('/').slice(-1)[0];
   }
 
-  // Download path init
+  // TODO: load all these settings from the same persistent storage (e.g., using electron-store or a JSON file)
+  // in one config object
   useEffect(() => {
-    window.App.getDownloadPath().then((path) => {
-      if (path) {
-        setSelectedPath(path);
-        setDisplayedPath(shortenPathForDisplay(path));
-      }
-    });
-  }, []);
+    const loadSettings = async () => {
+      try {
+        // First launch 
+        const firstLaunch = await window.App.isFirstLaunch();
+        console.log('Is first launch::::::::::::::::::', firstLaunch);
+        setIsFirstLaunch(firstLaunch);
 
-  useEffect(() => {
-    // Load settings
-    window.App.getStorageAllocation().then((storageAllocation) => {
-      setAllocatedStorage(storageAllocation / GIGA_BYTES);
-    });
-
-    window.App.getBandwidthAllocation().then((bandwidthAllocation) => {
-      // Compute display value and unit
-      if (bandwidthAllocation) {
-        if (bandwidthAllocation > MEGA_BYTES) {
-          setBandwidthUnit('MB/s');
-          setAllocatedBandwidth(bandwidthAllocation / MEGA_BYTES);
-        } else {
-          setBandwidthUnit('KB/s');
-          setAllocatedBandwidth(bandwidthAllocation / KILO_BYTES);
+        // Download path
+        const path = await window.App.getDownloadPath();
+        if (path) {
+          setSelectedPath(path);
+          setDisplayedPath(shortenPathForDisplay(path));
         }
+
+        // Storage allocation
+        const storageAllocation = await window.App.getStorageAllocation();
+        setAllocatedStorage(storageAllocation / GIGA_BYTES);
+
+        // Bandwidth allocation
+        const bandwidthAllocation = await window.App.getBandwidthAllocation();
+        if (bandwidthAllocation) {
+          if (bandwidthAllocation > MEGA_BYTES) {
+            setBandwidthUnit('MB/s');
+            setAllocatedBandwidth(bandwidthAllocation / MEGA_BYTES);
+          } else {
+            setBandwidthUnit('KB/s');
+            setAllocatedBandwidth(bandwidthAllocation / KILO_BYTES);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
       }
-    });
+    };
+
+    loadSettings();
   }, []);
 
 
@@ -302,13 +338,19 @@ export function MainScreen() {
   }, [isAboutPopupOpen]);
 
   return (
-    <div className="s4s-container relative w-full bg-[hsla(154,29%,38%,1)] p-4 rounded-2xl border-2 border-[#457E65] leading-light flex flex-col"
+    <div
+      className="s4s-container relative w-full bg-[hsla(154,29%,38%,1)] p-4 rounded-2xl border-2 border-[#457E65] leading-light flex flex-col"
       style={{
         minHeight: WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED,
-        backgroundPosition: "top left, 0 0",
-        backgroundRepeat: "no-repeat, repeat",
-        backgroundSize: `100% ${WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED}px, 100% 100%`
-      }}>
+        background: `
+        linear-gradient(360deg, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.3) 100%),
+        linear-gradient(0deg, #457E65, #457E65)
+      `,
+        backgroundPosition: "top left",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: `100% ${WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED}px`,
+      }}
+    >
 
       {/* Header avec zone de déplacement */}
       <div
@@ -405,8 +447,10 @@ export function MainScreen() {
       </div>
 
       {/* Contenu principal - prend tout l'espace disponible */}
-      <div className="flex-grow flex flex-col space-y-4 pt-4">
-        {isCleaningUp ? (
+      <div className="flex-grow flex flex-col space-y-4 mt-8">
+        {isFirstLaunch ? <>
+          <FirstLaunch onFinish={() => setIsFirstLaunch(false)} />
+        </> : isCleaningUp ? (
           <Cleanup onCleanupComplete={handleCleanupComplete} />
         ) : isFreeSpaceExhausted ? (
           <FreeSpaceExhausted
@@ -425,33 +469,6 @@ export function MainScreen() {
                 />
               )}
             </div>
-
-            {/* Path */}
-            <button
-              className={buttonVariants.primary}
-              onClick={handleSelectFolder}
-              title={selectedPath || undefined}
-            >
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <img
-                  src={folderIconUrl}
-                  alt="Path selection"
-                  className="w-[16px] h-[16px] aspect-square flex-shrink-0"
-                />
-                <span className="text-akz-gro text-xs truncate">
-                  {selectedPath ? displayedPath : "Choose path..."}
-                </span>
-              </div>
-
-              {/* Only visible if path is already set */}
-              {selectedPath && (
-                <div className="h-[19px] flex items-center justify-center rounded-full py-1.5 px-1.5 bg-[#737372] flex-shrink-0 ml-2">
-                  <span className="text-akz-gro text-[10px] font-medium text-white">
-                    Change
-                  </span>
-                </div>
-              )}
-            </button>
 
             {/* Storage config button */}
             <button
@@ -550,6 +567,6 @@ export function MainScreen() {
           made with <img src={heartIconUrl} alt="coeur" className="w-4 h-4 inline-block align-middle -translate-y-[1px]" /> by the data for good community
         </span>
       </div>
-    </div>
+    </div >
   );
 }
