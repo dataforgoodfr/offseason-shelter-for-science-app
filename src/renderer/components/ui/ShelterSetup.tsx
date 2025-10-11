@@ -10,10 +10,10 @@ interface ShelterSetupProps {
 export const ShelterSetup: React.FC<ShelterSetupProps> = ({ text, icon, onClick }) => {
     return (
         <div className="py-[24px] px-[12px] rounded-sm gap-[20px] bg-white shadow-md">
-            <div className={`${leadingVariants.textBlack} gap-[12px]`}>
+            <div className={`${leadingVariants.textBlack} flex flex-col gap-[12px]`}>
                 <p>Shelter path</p>
+                <SelectPath />
             </div>
-            <SelectPath displayedPath="/user/username/shelter" selectedPath="" handleSelectFolder={onClick} />
 
         </div>
     );

@@ -3,14 +3,17 @@ import WelcomeComponent from "renderer/components/WelcomeComponent";
 import ShelterInitialization from "renderer/components/initializing";
 import Cleanup from "renderer/components/Cleanup";
 import FreeSpaceExhausted from "renderer/components/ui/FreeSpaceExhausted";
+import { SelectPath } from "renderer/components/ui/SelectPath";
 import { logger } from "renderer/lib/logger";
 import AboutPopup from "renderer/components/about-popup";
 
 // broija 2025/08/25 : dissociated download logic from graphic features
 import LoadingBars from "renderer/components/ui/loading-bars/LoadingBarsDisplay";
 import { useDownloadManager } from "renderer/hooks/useDownloadManager";
+import { useSelectFolder } from "renderer/hooks/useSelectFolder";
 import StorageSelector from "renderer/components/storage-selector";
-import { BandwidthLimiter, BandwidthUnit } from "renderer/components/ui/bandwidth-limiter";
+import { BandwidthLimiter } from "renderer/components/ui/bandwidth-limiter";
+import type { BandwidthUnit } from "renderer/components/ui/bandwidth-limiter";
 import { buttonVariants } from "renderer/tailwind-pattern";
 import { WINDOW_DIMENSIONS } from "shared/constants";
 import { KILO_BYTES, MEGA_BYTES, GIGA_BYTES } from "lib/electron-app/utils/units";
@@ -49,9 +52,10 @@ export function MainScreen() {
   const [isHosting, setIsHosting] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [displayedPath, setDisplayedPath] = useState<string | null>(null);
   const [isAboutPopupOpen, setIsAboutPopupOpen] = useState(false);
+
+  // Utilisation du hook pour la sélection de dossier
+  const { selectedPath, displayedPath, selectFolder, setSelectedPath } = useSelectFolder();
 
   const [diskFreeSpace, setDiskFreeSpace] = useState<number>(0);
   const [allocatedStorage, setAllocatedStorage] = useState<number>(10); // Default 10GB
@@ -165,8 +169,7 @@ export function MainScreen() {
 
   const handleSelectNewPath = () => {
     setIsFreeSpaceExhausted(false);
-
-    handleSelectFolder();
+    selectFolder();
   };
 
   // Resize window
@@ -181,28 +184,6 @@ export function MainScreen() {
     window.App.expandMainWindowHeight(expansionLevel)
   }, [showStorageSelector, showBandwidthLimiter]);
 
-  const handleSelectFolder = async () => {
-    try {
-      const folder = await App.openFolderDialog();
-      if (folder) {
-        setSelectedPath(folder);
-        setDisplayedPath(shortenPathForDisplay(folder));
-        await window.App.setDownloadPath(folder);
-
-        logger.info('Download folder selected', {
-          data: {
-            path: folder
-          }
-        });
-      }
-    } catch (error: any) {
-      logger.error('Error selecting folder', {
-        data: {
-          error: error.message
-        }
-      });
-    }
-  };
 
   useEffect(() => {
     // check the console on dev tools
@@ -224,12 +205,6 @@ export function MainScreen() {
     });
   }, []);
 
-  function shortenPathForDisplay(path: string) {
-    if (process.platform === 'win32') {
-      return '...\\' + path.split('\\').slice(-1)[0];
-    }
-    return '.../' + path.split('/').slice(-1)[0];
-  }
 
   // TODO: load all these settings from the same persistent storage (e.g., using electron-store or a JSON file)
   // in one config object
@@ -245,7 +220,6 @@ export function MainScreen() {
         const path = await window.App.getDownloadPath();
         if (path) {
           setSelectedPath(path);
-          setDisplayedPath(shortenPathForDisplay(path));
         }
 
         // Storage allocation
@@ -515,6 +489,15 @@ export function MainScreen() {
             {/* Storage configuration and start hosting buttons */}
             {!isRunning && !isHosting && (
               <>
+                {/* Path selection */}
+                {!selectedPath && (
+                  <SelectPath
+                    onPathSelected={(path) => {
+                      setSelectedPath(path);
+                    }}
+                  />
+                )}
+
                 {/* Start hosting button */}
                 <button
                   className="group w-full h-12 flex items-center

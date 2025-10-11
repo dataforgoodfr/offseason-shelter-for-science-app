@@ -1,5 +1,6 @@
 import { leadingVariants } from "renderer/tailwind-pattern";
 import { buttonVariants } from "renderer/tailwind-pattern";
+import { SelectPath } from "./SelectPath";
 
 const checkMarkIconUrl = new URL('../../assets/icons/check_mark.svg', import.meta.url).href;
 
@@ -43,7 +44,7 @@ const FreeSpaceExhausted = ({ onAllocateMoreSpace, onSelectNewPath }: FreeSpaceE
 
       <div className="w-full max-w-[280px] text-center mb-6">
         {/* Actions */}
-        <div className="flex flex-row gap-2 items-center">
+        <div className="flex flex-col gap-2 items-center">
           <button
             onClick={onAllocateMoreSpace}
             className={`${buttonVariants.primary} justify-center`}
@@ -54,16 +55,16 @@ const FreeSpaceExhausted = ({ onAllocateMoreSpace, onSelectNewPath }: FreeSpaceE
               </span>
             </div>
           </button>
-          <button
-            onClick={onSelectNewPath}
-            className={`${buttonVariants.primary} justify-center`}
-          >
-            <div className="h-[19px] flex items-center justify-center rounded-full py-1.5 px-1.5 bg-[#737372] flex-shrink-0">
-              <span className="text-akz-gro text-[10px] font-medium text-white">
-                Select new path
-              </span>
-            </div>
-          </button>
+
+          {/* Utilisation du composant SelectPath */}
+          <SelectPath
+            onPathSelected={(path) => {
+              // Appeler la fonction callback du parent si fournie
+              if (onSelectNewPath) {
+                onSelectNewPath();
+              }
+            }}
+          />
         </div>
       </div>
     </div>
