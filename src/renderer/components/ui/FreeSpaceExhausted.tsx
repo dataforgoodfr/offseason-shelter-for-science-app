@@ -1,6 +1,6 @@
 import { leadingVariants } from "renderer/tailwind-pattern";
 import { buttonVariants } from "renderer/tailwind-pattern";
-import { SelectPath } from "./SelectPath";
+import { ShelterPath } from "./ShelterPath";
 
 const checkMarkIconUrl = new URL('../../assets/icons/check_mark.svg', import.meta.url).href;
 
@@ -57,7 +57,7 @@ const FreeSpaceExhausted = ({ onAllocateMoreSpace, onSelectNewPath }: FreeSpaceE
           </button>
 
           {/* Utilisation du composant SelectPath */}
-          <SelectPath
+          <ShelterPath
             onPathSelected={(path) => {
               // Appeler la fonction callback du parent si fournie
               if (onSelectNewPath) {

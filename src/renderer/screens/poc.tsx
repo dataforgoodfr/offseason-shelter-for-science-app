@@ -3,7 +3,7 @@ import WelcomeComponent from "renderer/components/WelcomeComponent";
 import ShelterInitialization from "renderer/components/initializing";
 import Cleanup from "renderer/components/Cleanup";
 import FreeSpaceExhausted from "renderer/components/ui/FreeSpaceExhausted";
-import { SelectPath } from "renderer/components/ui/SelectPath";
+import { ShelterPath } from "renderer/components/ui/ShelterPath";
 import { logger } from "renderer/lib/logger";
 import AboutPopup from "renderer/components/about-popup";
 
@@ -491,7 +491,7 @@ export function MainScreen() {
               <>
                 {/* Path selection */}
                 {!selectedPath && (
-                  <SelectPath
+                  <ShelterPath
                     onPathSelected={(path) => {
                       setSelectedPath(path);
                     }}
