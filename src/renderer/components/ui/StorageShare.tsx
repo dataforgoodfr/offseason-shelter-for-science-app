@@ -23,8 +23,8 @@ export const StorageShare: React.FC<StorageShareProps> = ({
         const fetchDiskSize = async () => {
             if (selectedPath) {
                 try {
-                    const freeSpaceBytes = await window.App.getFreeSpace(selectedPath);
-                    setDiskSize(freeSpaceBytes);
+                    const { totalGB } = await window.App.getDiskInfo(selectedPath);
+                    setDiskSize(totalGB);
                 } catch (error) {
                     console.error("Erreur lors de la récupération de la taille du disque:", error);
                     setDiskSize(null);
@@ -43,13 +43,6 @@ export const StorageShare: React.FC<StorageShareProps> = ({
             onStoragePercentageChange(storagePercentage);
         }
     }, [storagePercentage, onStoragePercentageChange]);
-
-    // Formater la taille pour l'affichage
-    const formatSize = (bytes: number | null): string => {
-        const actualBytes = bytes || 0;
-        const gb = Math.round(actualBytes / GIGA_BYTES);
-        return `${gb} GO`;
-    };
 
     // Calculer la taille allouée en fonction du pourcentage
     const allocatedSize = diskSize ? Math.round((diskSize * storagePercentage) / 100) : null;
@@ -80,11 +73,11 @@ export const StorageShare: React.FC<StorageShareProps> = ({
 
     return (
         <div className={className}>
-            <div className="flex flex-col gap-[12px]">
+            <div className="flex flex-col gap-[4px]">
                 <div className="flex justify-between items-center">
                     <p className="capitalize font-semibold">Storage share</p>
                     <div className="bg-[#F1F3F2] px-[8px] py-[6px] rounded-sm">
-                        {formatSize(allocatedSize)}
+                        {`${allocatedSize} Go`}
                     </div>
                 </div>
                 <div

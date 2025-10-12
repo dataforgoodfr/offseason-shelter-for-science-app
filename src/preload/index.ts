@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { DiskSpaceInfo } from 'lib/electron-app/types';
 import { ErrorHandlingOptions } from 'main/services/rescue-api-service';
 
 declare global {
@@ -76,6 +77,7 @@ const API = {
   
    // Obtenir l'espace disque disponible (libre) pour un chemin donné
   getFreeSpace: (path: string) => ipcRenderer.invoke('get-free-space', path),
+  getDiskInfo: (path: string): Promise<DiskSpaceInfo> => ipcRenderer.invoke('get-disk-info', path),
 
   // Remaining free space
   getRemainingFreeSpace: () => ipcRenderer.invoke('free-space:get-remaining'),

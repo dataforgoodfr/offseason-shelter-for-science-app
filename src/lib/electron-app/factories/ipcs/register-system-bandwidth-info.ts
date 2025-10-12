@@ -3,6 +3,7 @@ import * as fs from 'fs'
 
 import { GIGA_BYTES, MEGA_BYTES, TERA_BYTES } from '../../utils/units'
 import { userConfig } from '../../utils/user-config'
+import { DiskSpaceInfo } from 'lib/electron-app/types'
 
 const DEFAULT_STORAGE_ALLOCATION = 50 * GIGA_BYTES
 
@@ -102,6 +103,44 @@ export function registerSystemInfo() {
     } catch (error) {
       console.error('Erreur get-free-space:', error)
       return DEFAULT_STORAGE_ALLOCATION
+    }
+  })
+
+  ipcMain.handle('get-disk-info', async (event, folderPath: string): Promise<DiskSpaceInfo | null> => {
+    console.log('Demande info disque pour:', folderPath)
+
+    try {
+      if (!fs.existsSync(folderPath)) {
+        throw new Error('Le dossier n\'existe pas')
+      }
+
+      const stats = fs.statSync(folderPath)
+      if (!stats.isDirectory()) {
+        throw new Error('Ce n\'est pas un dossier')
+      }
+
+      // checkDiskSpace retourne { diskPath, free, size }
+      const checkDiskSpace = (await import('check-disk-space')).default
+      const diskInfo = await checkDiskSpace(folderPath)
+      
+      console.log(`Disque: ${diskInfo.diskPath}`)
+      console.log(`Taille totale: ${Math.round(diskInfo.size / GIGA_BYTES)} GB`)
+      console.log(`Espace libre: ${Math.round(diskInfo.free / GIGA_BYTES)} GB`)
+      
+      return {
+        totalBytes: diskInfo.size,
+        freeBytes: diskInfo.free,
+        totalGB: Math.round(diskInfo.size / GIGA_BYTES),
+        freeGB: Math.round(diskInfo.free / GIGA_BYTES),
+        usedGB: Math.round((diskInfo.size - diskInfo.free) / GIGA_BYTES),
+        usedPercentage: Math.round(((diskInfo.size - diskInfo.free) / diskInfo.size) * 100),
+        usedBytes: diskInfo.size - diskInfo.free,
+        diskPath: diskInfo.diskPath
+      } satisfies DiskSpaceInfo;
+
+    } catch (error) {
+      console.error('Erreur get-disk-info:', error)
+      return null
     }
   })
 
