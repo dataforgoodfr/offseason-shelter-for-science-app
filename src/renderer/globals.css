@@ -336,3 +336,66 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
   line-height: normal;
   letter-spacing: -0.12px;
 }
+
+/* Styles pour le slider de stockage */
+.storage-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  background: #E1E3E2;
+  cursor: pointer;
+  border: none;
+}
+
+.storage-slider::-webkit-slider-track {
+  height: 4px;
+  border-radius: 2px;
+  background: #E1E3E2;
+}
+
+.storage-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10PX;
+  height: 10PX;
+  border-radius: 50%;
+  background: #000000;
+  cursor: pointer;
+  border: none;
+  transition: none;
+}
+
+.storage-slider::-webkit-slider-thumb:hover {
+  background: #333333;
+}
+
+.storage-slider::-webkit-slider-thumb:active {
+  background: #000000;
+}
+
+.storage-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: #E1E3E2;
+  border: none;
+}
+
+.storage-slider::-moz-range-thumb {
+  width: 10PX;
+  height: 10PX;
+  border-radius: 50%;
+  background: #000000;
+  cursor: pointer;
+  border: none;
+  transition: none;
+}
+
+.storage-slider::-moz-range-thumb:hover {
+  background: #333333;
+}
+
+.storage-slider::-moz-range-thumb:active {
+  background: #000000;
+}

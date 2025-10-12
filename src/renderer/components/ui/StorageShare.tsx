@@ -1,25 +1,105 @@
 import type React from "react";
+import { useState, useEffect } from "react";
 import { useSelectFolder } from "renderer/hooks/useSelectFolder";
+import { GIGA_BYTES } from "lib/electron-app/utils/units";
 
 interface StorageShareProps {
     className?: string;
+    onStoragePercentageChange?: (percentage: number) => void;
+    initialPercentage?: number;
 }
 
 export const StorageShare: React.FC<StorageShareProps> = ({
-    className = ""
+    className = "",
+    onStoragePercentageChange,
+    initialPercentage = 10
 }) => {
+    const [diskSize, setDiskSize] = useState<number | null>(null);
+    const [storagePercentage, setStoragePercentage] = useState<number>(initialPercentage);
+    const { selectedPath } = useSelectFolder();
+
+    // Récupérer la taille du disque quand un chemin est sélectionné
+    useEffect(() => {
+        const fetchDiskSize = async () => {
+            if (selectedPath) {
+                try {
+                    const freeSpaceBytes = await window.App.getFreeSpace(selectedPath);
+                    setDiskSize(freeSpaceBytes);
+                } catch (error) {
+                    console.error("Erreur lors de la récupération de la taille du disque:", error);
+                    setDiskSize(null);
+                }
+            } else {
+                setDiskSize(null);
+            }
+        };
+
+        fetchDiskSize();
+    }, [selectedPath]);
+
+    // Notifier le parent du changement de pourcentage
+    useEffect(() => {
+        if (onStoragePercentageChange) {
+            onStoragePercentageChange(storagePercentage);
+        }
+    }, [storagePercentage, onStoragePercentageChange]);
+
+    // Formater la taille pour l'affichage
+    const formatSize = (bytes: number | null): string => {
+        const actualBytes = bytes || 0;
+        const gb = Math.round(actualBytes / GIGA_BYTES);
+        return `${gb} GO`;
+    };
+
+    // Calculer la taille allouée en fonction du pourcentage
+    const allocatedSize = diskSize ? Math.round((diskSize * storagePercentage) / 100) : null;
+
+    // Convertir la valeur linéaire du slider en pourcentage exponentiel
+    const linearToExponential = (linearValue: number): number => {
+        // Échelle où 25% du slider = ~10% réel
+        // Utilise une courbe plus prononcée
+        const normalizedValue = linearValue / 100;
+        const exponentialValue = (normalizedValue ** 2) * 100;
+        return Math.round(Math.max(0.1, exponentialValue) * 10) / 10;
+    };
+
+    // Convertir le pourcentage exponentiel en valeur linéaire pour le slider
+    const exponentialToLinear = (exponentialValue: number): number => {
+        const normalizedValue = exponentialValue / 100;
+        const linearValue = Math.sqrt(normalizedValue) * 100;
+        return Math.round(linearValue);
+    };
+
+    const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const linearValue = Number.parseInt(event.target.value, 10);
+        if (!Number.isNaN(linearValue) && linearValue >= 0 && linearValue <= 100) {
+            const exponentialPercentage = linearToExponential(linearValue);
+            setStoragePercentage(exponentialPercentage);
+        }
+    };
+
     return (
         <div className={className}>
             <div className="flex flex-col gap-[12px]">
                 <div className="flex justify-between items-center">
                     <p className="capitalize font-semibold">Storage share</p>
-                    <div className="bg-[#F1F3F2] px-[8px] py-[6px] rounded-sm">50 GO</div>
+                    <div className="bg-[#F1F3F2] px-[8px] py-[6px] rounded-sm">
+                        {formatSize(allocatedSize)}
+                    </div>
                 </div>
                 <div
-                    className={`w-full bg-[#F1F3F2] hover:bg-[#E1E3E2] transition duration-200 rounded-md px-[8px] py-[11px] cursor-pointer ${className}`}
+                    className="w-full bg-[#F1F3F2] h-[32px] flex items-center transition duration-200 rounded-md px-[8px] py-[11px] cursor-pointer"
                 >
-                    <div className="">
-
+                    {/* Slider simple comme dans l'image */}
+                    <div className="flex flex-1">
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={exponentialToLinear(storagePercentage)}
+                            onChange={handleSliderChange}
+                            className="flex-1 h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer storage-slider"
+                        />
                     </div>
                 </div>
             </div>
