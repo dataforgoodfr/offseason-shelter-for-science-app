@@ -20,10 +20,12 @@ export const StorageShare: React.FC<StorageShareProps> = ({
 
     // Récupérer la taille du disque quand un chemin est sélectionné
     useEffect(() => {
+        console.log("Les news ?:", selectedPath);
         const fetchDiskSize = async () => {
             if (selectedPath) {
                 try {
                     const { totalGB } = await window.App.getDiskInfo(selectedPath);
+                    console.log("Taille totale du disque (GB):", totalGB);
                     setDiskSize(totalGB);
                 } catch (error) {
                     console.error("Erreur lors de la récupération de la taille du disque:", error);
@@ -76,8 +78,8 @@ export const StorageShare: React.FC<StorageShareProps> = ({
             <div className="flex flex-col gap-[4px]">
                 <div className="flex justify-between items-center">
                     <p className="capitalize font-semibold">Storage share</p>
-                    <div className="bg-[#F1F3F2] px-[8px] py-[6px] rounded-sm">
-                        {`${allocatedSize} Go`}
+                    <div className="bg-[#F1F3F2] min-w-[54px] text-center px-[8px] py-[6px] rounded-sm">
+                        {diskSize ? `${allocatedSize} Go` : "-"}
                     </div>
                 </div>
                 <div
@@ -89,6 +91,7 @@ export const StorageShare: React.FC<StorageShareProps> = ({
                             type="range"
                             min="0"
                             max="100"
+                            disabled={!diskSize}
                             value={exponentialToLinear(storagePercentage)}
                             onChange={handleSliderChange}
                             className="flex-1 h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer storage-slider"

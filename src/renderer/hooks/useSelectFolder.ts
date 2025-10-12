@@ -32,7 +32,7 @@ export function useSelectFolder(): UseSelectFolderReturn {
   const selectFolder = useCallback(async () => {
     try {
       const folder = await window.App.openFolderDialog();
-      console.log("folder", folder);
+      console.log("selecting folderrrrrrrrrrrr", folder);
       if (folder) {
         setSelectedPathState(folder);
         setDisplayedPath(shortenPathForDisplay(folder));
@@ -54,6 +54,7 @@ export function useSelectFolder(): UseSelectFolderReturn {
   }, []);
 
   const setSelectedPath = useCallback((path: string | null) => {
+    console.log("selected path setSelectedPath", path);
     setSelectedPathState(path);
     if (path) {
       setDisplayedPath(shortenPathForDisplay(path));

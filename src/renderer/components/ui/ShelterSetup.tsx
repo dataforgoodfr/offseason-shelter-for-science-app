@@ -1,7 +1,6 @@
 import { leadingVariants } from "renderer/tailwind-pattern";
 import { ShelterPath } from "./ShelterPath";
 import { StorageShare } from "./StorageShare";
-import { useSelectFolder } from "renderer/hooks/useSelectFolder";
 
 interface ShelterSetupProps {
 
