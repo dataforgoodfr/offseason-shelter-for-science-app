@@ -1,29 +1,34 @@
+// ShelterPath.tsx
 import type React from "react";
-import { useSelectFolder } from "renderer/hooks/useSelectFolder";
 
 interface ShelterPathProps {
-    displayedPath?: string;
-    onPathSelected?: (path: string) => void;
+    selectedPath?: string | null;
+    displayedPath?: string | null;
+    onSelectFolder: () => void; // Changez le type
     className?: string;
 }
 
 const folderIconUrl = new URL('../../assets/icons/path.svg', import.meta.url).href;
 
+function shortenPathForDisplay(path: string): string {
+    if (process.platform === "win32") {
+        return `...\\${path.split("\\").slice(-1)[0]}`;
+    }
+    return `.../${path.split("/").slice(-1)[0]}`;
+}
+
 export const ShelterPath: React.FC<ShelterPathProps> = ({
+    selectedPath,
     displayedPath: propDisplayedPath,
-    onPathSelected,
+    onSelectFolder,
     className = ""
 }) => {
-    const hook = useSelectFolder();
-
-    // Utilise les props si fournies, sinon utilise le hook
-    const selectedPath = hook.selectedPath;
-    const displayedPath = propDisplayedPath ?? hook.displayedPath;
+    // ✅ N'utilisez PLUS le hook ici, utilisez uniquement les props
+    const displayedPath = propDisplayedPath ?? (selectedPath ? shortenPathForDisplay(selectedPath) : null);
 
     const handleSelectFolder = async () => {
-        await hook.selectFolder();
-        if (hook.selectedPath && onPathSelected) {
-            onPathSelected(hook.selectedPath);
+        if (onSelectFolder) {
+            onSelectFolder();
         }
     };
 
@@ -48,6 +53,6 @@ export const ShelterPath: React.FC<ShelterPathProps> = ({
                     </div>
                 </button>
             </div>
-        </div >
+        </div>
     );
 };

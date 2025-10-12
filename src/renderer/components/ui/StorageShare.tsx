@@ -1,22 +1,19 @@
 import type React from "react";
 import { useState, useEffect } from "react";
-import { useSelectFolder } from "renderer/hooks/useSelectFolder";
-import { GIGA_BYTES } from "lib/electron-app/utils/units";
 
 interface StorageShareProps {
     className?: string;
     onStoragePercentageChange?: (percentage: number) => void;
-    initialPercentage?: number;
+    selectedPath?: string | null; // Ajoutez cette prop
 }
 
 export const StorageShare: React.FC<StorageShareProps> = ({
     className = "",
     onStoragePercentageChange,
-    initialPercentage = 10
+    selectedPath,
 }) => {
     const [diskSize, setDiskSize] = useState<number | null>(null);
-    const [storagePercentage, setStoragePercentage] = useState<number>(initialPercentage);
-    const { selectedPath } = useSelectFolder();
+    const [storagePercentage, setStoragePercentage] = useState<number>(0);
 
     // Récupérer la taille du disque quand un chemin est sélectionné
     useEffect(() => {
@@ -27,6 +24,7 @@ export const StorageShare: React.FC<StorageShareProps> = ({
                     const { totalGB } = await window.App.getDiskInfo(selectedPath);
                     console.log("Taille totale du disque (GB):", totalGB);
                     setDiskSize(totalGB);
+                    setStoragePercentage(2);
                 } catch (error) {
                     console.error("Erreur lors de la récupération de la taille du disque:", error);
                     setDiskSize(null);

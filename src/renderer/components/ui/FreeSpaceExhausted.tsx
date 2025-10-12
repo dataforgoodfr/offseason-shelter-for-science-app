@@ -6,7 +6,7 @@ const checkMarkIconUrl = new URL('../../assets/icons/check_mark.svg', import.met
 
 interface FreeSpaceExhaustedProps {
   onAllocateMoreSpace?: () => void;
-  onSelectNewPath?: () => void;
+  onSelectNewPath: () => void;
 }
 
 const FreeSpaceExhausted = ({ onAllocateMoreSpace, onSelectNewPath }: FreeSpaceExhaustedProps) => {
@@ -58,12 +58,7 @@ const FreeSpaceExhausted = ({ onAllocateMoreSpace, onSelectNewPath }: FreeSpaceE
 
           {/* Utilisation du composant SelectPath */}
           <ShelterPath
-            onPathSelected={(path) => {
-              // Appeler la fonction callback du parent si fournie
-              if (onSelectNewPath) {
-                onSelectNewPath();
-              }
-            }}
+            onSelectFolder={onSelectNewPath}
           />
         </div>
       </div>
