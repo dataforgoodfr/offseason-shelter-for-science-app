@@ -17,6 +17,7 @@ import type { BandwidthUnit } from "renderer/components/ui/bandwidth-limiter";
 import { buttonVariants } from "renderer/tailwind-pattern";
 import { WINDOW_DIMENSIONS } from "shared/constants";
 import { KILO_BYTES, MEGA_BYTES, GIGA_BYTES } from "lib/electron-app/utils/units";
+
 import { FirstLaunch } from "renderer/components/First-launch";
 
 type AppStatus =
@@ -36,13 +37,6 @@ const heartIconUrl = new URL('../assets/icons/heart.svg', import.meta.url).href;
 // The "App" comes from the context bridge in preload/index.ts
 const { App } = window;
 
-function getBandwidthLimitBps(bandwidthBps: number | undefined, unit: BandwidthUnit) {
-  if (bandwidthBps === undefined || unit === undefined) {
-    return undefined;
-  }
-
-  return Math.floor(bandwidthBps * (unit === 'KB/s' ? KILO_BYTES : MEGA_BYTES));
-}
 
 export function MainScreen() {
   // État principal
@@ -109,20 +103,7 @@ export function MainScreen() {
     }
   }, [showStorageSelector]);
 
-  const handleBandwidthLimiterSelected = useCallback((bandwidth?: number, bandwidthUnit?: BandwidthUnit) => {
-    setAllocatedBandwidth(bandwidth);
-    setBandwidthUnit(bandwidthUnit);
-    window.App.setBandwidthAllocation(getBandwidthLimitBps(bandwidth, bandwidthUnit));
-  }, []);
 
-  const toggleBandwidthLimiter = useCallback(() => {
-    const newState = !showBandwidthLimiter;
-    setShowBandwidthLimiter(newState);
-
-    if (newState) {
-      setShowStorageSelector(false);
-    }
-  }, [showBandwidthLimiter]);
 
   // Setup IPC event listeners for init state management
   useEffect(() => {
@@ -322,7 +303,6 @@ export function MainScreen() {
       `,
         backgroundPosition: "top left",
         backgroundRepeat: "no-repeat",
-        backgroundSize: `100% ${WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED}px`,
       }}
     >
 
@@ -464,27 +444,7 @@ export function MainScreen() {
                 defaultSelection={allocatedStorage}
               />
             )}
-            {/* Bandwidth config button */}
-            <button
-              className={`${buttonVariants.primary} ${showBandwidthLimiter && 'border-white/50 bg-white/5'}`}
-              onClick={toggleBandwidthLimiter}
-            >
-              <span className="text-akz-gro text-xs text-white/80">
-                Bandwidth: {bandwidthUnit ? `${allocatedBandwidth} ${bandwidthUnit}` : '∞'}
-              </span>
-              <div className="h-[19px] flex items-center justify-center rounded-full py-1.5 px-1.5 bg-[#737372] flex-shrink-0 ml-2">
-                <span className="text-akz-gro text-[10px] font-medium text-white">
-                  {showBandwidthLimiter ? "Close" : "..."}
-                </span>
-              </div>
-            </button>
-            {showBandwidthLimiter && (
-              <BandwidthLimiter
-                onBandwidthSelected={handleBandwidthLimiterSelected}
-                defaultValue={allocatedBandwidth}
-                defaultUnit={bandwidthUnit}
-              />
-            )}
+
           </>
         ) : (
           <ShelterInitialization />

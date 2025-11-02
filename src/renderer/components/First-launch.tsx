@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { SpecialButton } from "./ui/SpecialButton";
 import { leadingVariants } from "renderer/tailwind-pattern";
 import { ShelterSetup } from "./ui/ShelterSetup";
@@ -19,6 +19,12 @@ export const FirstLaunch: React.FC<FirstLaunchProps> = ({ onFinish }) => {
         allocatedSize,
         isReady,
     } = useStorageShare(selectedPath);
+
+    useEffect(() => {
+        if (step === 'step2') {
+            window.App.expandMainWindowHeight(1)
+        }
+    }, [step]);
 
     const Step1: React.FC<{ setStep: React.Dispatch<React.SetStateAction<'step1' | 'step2'>> }> = ({ setStep }) => {
         return (

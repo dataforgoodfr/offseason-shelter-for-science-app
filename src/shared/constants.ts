@@ -1,12 +1,12 @@
 export const ENVIRONMENT = {
-  IS_DEV: process.env.NODE_ENV === 'development',
-}
+  IS_DEV: process.env.NODE_ENV === "development",
+};
 
 export const PLATFORM = {
-  IS_MAC: process.platform === 'darwin',
-  IS_WINDOWS: process.platform === 'win32',
-  IS_LINUX: process.platform === 'linux',
-}
+  IS_MAC: process.platform === "darwin",
+  IS_WINDOWS: process.platform === "win32",
+  IS_LINUX: process.platform === "linux",
+};
 
 export const WINDOW_DIMENSIONS = {
   MAIN: {
@@ -17,4 +17,4 @@ export const WINDOW_DIMENSIONS = {
       EXPANDED: 690,
     },
   },
-} as const
+} as const;
