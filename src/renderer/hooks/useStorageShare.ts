@@ -15,7 +15,7 @@ export interface UseStorageShareReturn {
 }
 
 export function useStorageShare(
-  selectedPath: string | null | undefined
+  selectedPath: string | null
 ): UseStorageShareReturn {
   const [diskSize, setDiskSize] = useState<number | null>(null);
   const [storagePercentage, setStoragePercentageState] = useState<number>(0);
@@ -51,7 +51,6 @@ export function useStorageShare(
   // Récupérer la taille du disque quand un chemin est sélectionné
   useEffect(() => {
     const fetchDiskSize = async () => {
-      console.log("selectedPath in useStorageShare", selectedPath);
       if (selectedPath) {
         setIsReady(false);
         try {

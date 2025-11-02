@@ -1,29 +1,31 @@
 // renderer/components/StorageShare.tsx
 import type React from "react";
 import { useEffect } from "react";
-import { useStorageShare } from "renderer/hooks/useStorageShare";
 
 interface StorageShareProps {
     className?: string;
-    selectedPath?: string | null;
     onStoragePercentageChange?: (percentage: number) => void;
+    selectedPath: string | null;
+    diskSize: number | null;
+    allocatedSize: number | null;
+    sliderValue: number;
+    onSliderChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    isReady: boolean;
+    storagePercentage: number;
 }
 
 export const StorageShare: React.FC<StorageShareProps> = ({
     className = "",
-    selectedPath,
     onStoragePercentageChange,
+    selectedPath,
+    diskSize,
+    allocatedSize,
+    sliderValue,
+    onSliderChange,
+    isReady,
+    storagePercentage,
 }) => {
-    const {
-        diskSize,
-        allocatedSize,
-        sliderValue,
-        handleSliderChange,
-        isReady,
-        storagePercentage,
-    } = useStorageShare(selectedPath);
-
-    // Notifier le parent du changement de pourcentage si nécessaire
+    // Notifier le parent du changement de pourcentage
     useEffect(() => {
         if (onStoragePercentageChange) {
             onStoragePercentageChange(storagePercentage);
@@ -39,7 +41,10 @@ export const StorageShare: React.FC<StorageShareProps> = ({
                         {diskSize ? `${allocatedSize} Go` : "-"}
                     </div>
                 </div>
-                <div className="w-full bg-[#F1F3F2] h-[32px] flex items-center transition duration-200 rounded-md px-[8px] py-[11px] cursor-pointer">
+                <div
+                    className="w-full bg-[#F1F3F2] h-[32px] flex items-center transition duration-200 rounded-md px-[8px] py-[11px] cursor-pointer"
+                >
+                    {/* Slider simple comme dans l'image */}
                     <div className="flex flex-1">
                         <input
                             type="range"
@@ -47,7 +52,7 @@ export const StorageShare: React.FC<StorageShareProps> = ({
                             max="100"
                             disabled={!isReady}
                             value={sliderValue}
-                            onChange={handleSliderChange}
+                            onChange={onSliderChange}
                             className="flex-1 h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer storage-slider"
                         />
                     </div>

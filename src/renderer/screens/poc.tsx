@@ -169,7 +169,6 @@ export function MainScreen() {
 
   const handleSelectNewPath = () => {
     setIsFreeSpaceExhausted(false);
-    selectFolder();
   };
 
   // Resize window
