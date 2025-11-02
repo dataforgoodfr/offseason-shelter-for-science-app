@@ -1,9 +1,8 @@
-import { createElectronRouter } from 'electron-router-dom'
+import { createElectronRouter } from "electron-router-dom";
 
 export const { Router, registerRoute, settings } = createElectronRouter({
-  port: 4927,
-
+  port: process.env.VITE_PORT ? parseInt(process.env.VITE_PORT) : 4927,
   types: {
-    ids: ['main', 'about', 'logger'],
+    ids: ["main", "about", "logger"],
   },
-})
+});
