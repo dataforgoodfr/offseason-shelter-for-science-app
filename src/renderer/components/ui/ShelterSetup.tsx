@@ -3,6 +3,7 @@ import { ShelterPath } from "./ShelterPath";
 import { StorageShare } from "./StorageShare";
 import { useSelectFolder } from "renderer/hooks/useSelectFolder";
 import { useEffect } from "react";
+import { useStorageShare } from "renderer/hooks/useStorageShare";
 
 interface ShelterSetupProps {
 

@@ -3,6 +3,7 @@ import { SpecialButton } from "./ui/SpecialButton";
 import { leadingVariants } from "renderer/tailwind-pattern";
 import { ShelterSetup } from "./ui/ShelterSetup";
 import { useSelectFolder } from "renderer/hooks/useSelectFolder";
+import { useStorageShare } from "renderer/hooks/useStorageShare";
 const lifebuoyIconUrl = new URL('../assets/icons/lifebuoy.svg', import.meta.url).href;
 const hostingIconUrl = new URL('../assets/icons/hosting.svg', import.meta.url).href;
 const hostingIconDisabledUrl = new URL('../assets/icons/hosting_disabled.svg', import.meta.url).href;
@@ -14,6 +15,10 @@ interface FirstLaunchProps {
 export const FirstLaunch: React.FC<FirstLaunchProps> = ({ onFinish }) => {
     const [step, setStep] = React.useState<'step1' | 'step2'>('step1');
     const { selectedPath } = useSelectFolder();
+    const {
+        allocatedSize,
+        isReady,
+    } = useStorageShare(selectedPath);
 
     const Step1: React.FC<{ setStep: React.Dispatch<React.SetStateAction<'step1' | 'step2'>> }> = ({ setStep }) => {
         return (
@@ -50,8 +55,8 @@ export const FirstLaunch: React.FC<FirstLaunchProps> = ({ onFinish }) => {
         return (
             <div className="flex flex-col gap-[16px]">
                 <h2 className={leadingVariants.title}>Setup your shelter</h2>
-                <ShelterSetup text="Shelter path" icon={undefined} onClick={() => { }} />
-                <SpecialButton disabled={!selectedPath} text="Start hosting" icon={hostingIconUrl} iconDisabled={hostingIconDisabledUrl} onClick={() => {
+                <ShelterSetup />
+                <SpecialButton disabled={!selectedPath || !(isReady && allocatedSize)} text="Start hosting" icon={hostingIconUrl} iconDisabled={hostingIconDisabledUrl} onClick={() => {
                     // Simulate folder selection and finish
                     onFinish();
                 }} />

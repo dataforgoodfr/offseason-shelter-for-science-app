@@ -217,10 +217,10 @@ export function MainScreen() {
         setIsFirstLaunch(firstLaunch);
 
         // Download path
-        const path = await window.App.getDownloadPath();
-        if (path) {
-          setSelectedPath(path);
-        }
+        // const path = await window.App.getDownloadPath();
+        // if (path) {
+        //   setSelectedPath(path);
+        // }
 
         // Storage allocation
         const storageAllocation = await window.App.getStorageAllocation();
