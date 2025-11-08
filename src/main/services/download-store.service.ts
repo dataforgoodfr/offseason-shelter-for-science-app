@@ -108,8 +108,6 @@ class DownloadStoreService {
       if (this.window) {
         this.window.webContents.send('free-space:exhausted');
       }
-
-      /** @todo Stop download process */
     } else {
       this.setRemainingFreeSpace(freeSpace);
     }    

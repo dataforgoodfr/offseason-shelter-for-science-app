@@ -1,3 +1,5 @@
+import { Asset } from 'shared/api'
+
 export type InitStatus = 'loading' | 'success' | 'error';
 
 export interface InitStep {
@@ -11,19 +13,6 @@ export interface DispatchRequestPayload {
   description: string
   free_space_gb: number
   node_id: string // broija 2025/09/04 : should probably be a number, named rescuer_id
-}
-
-export interface Asset {
-  ds_id: number
-  res_id: number
-  asset_id?: number
-  name: string
-  path: string
-  priority: number
-  size_mb: number
-  url: string
-  magnet_link?: string
-  status?: 'SUCCESS' | 'ABORTED' | 'DOWNLOADING'
 }
 
 export interface DispatchResponse {

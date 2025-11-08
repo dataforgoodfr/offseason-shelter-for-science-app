@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
-import { Asset, DispatchRequestPayload, DownloadProgressCallback } from 'renderer/lib/types';
+import { DispatchRequestPayload, DownloadProgressCallback } from 'renderer/lib/types';
 import climateDataService from 'renderer/services/climateData.service';
 import { logger } from 'renderer/lib/logger';
+import { Asset } from 'shared/api'
 import { GIGA_BYTES } from 'lib/electron-app/utils/units';
 
 interface DownloadState {
@@ -104,7 +105,7 @@ export function useDownloadManager() : DownloadManager {
 
       const remainingFreeSpace = await window.App.checkRemainingFreeSpace();
       if (!remainingFreeSpace) {
-        callbacks.onError?.('Free space exhausted', undefined);
+        callbacks.onError?.('Free space exhausted');
         return false;
       }
 

@@ -126,19 +126,17 @@ public async startTorrenting(
   try {
     // NETTOYAGE COMPLET ET SÉCURISÉ AVANT CHAQUE AJOUT
     console.log('🧹 Nettoyage complet avant ajout du torrent');
-    
+   
     const torrents = [...this.client.torrents]; // Copie pour éviter les modifications pendant l'itération
     torrents.forEach((torrent, index) => {
-      if (torrent) {
+      if (torrent && typeof torrent.destroy === 'function') {
         console.log(`🗑️ Destroying torrent ${index + 1}/${torrents.length}: ${torrent.name || torrent.infoHash}`);
-        this.client.destroyTorrent(torrent);
-      }
-/*       if (torrent && typeof torrent.destroy === 'function') {
-        console.log(`🗑️ Destruction torrent ${index + 1}/${torrents.length}: ${torrent.name || torrent.infoHash}`);
+
+        /** @todo use destroy callback to trigger download ? */
         torrent.destroy();
-      } */
+      }
     });
-    
+
     // Attendre que le nettoyage soit effectif
     await new Promise(resolve => setTimeout(resolve, 3000));
     console.log('Nettoyage terminé, ajout du nouveau torrent');
@@ -207,7 +205,7 @@ public async startTorrenting(
             createdBy: 'Shelter For Science App', // @todo : add app version at build time ?
             private: false,
             announceList: [
-              ['wss://tracker.btorrent.xyz'],
+              ['wss://tracker.btorrent.xyz'], // Down as of 2025/09/18
               ['wss://tracker.openwebtorrent.com'],
             ]
           };

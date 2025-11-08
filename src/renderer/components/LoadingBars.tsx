@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import NoConnexion from './NoConnexion';
-import { Asset, DispatchRequestPayload, DownloadProgressCallback } from 'renderer/lib/types';
+import { DispatchRequestPayload, DownloadProgressCallback } from 'renderer/lib/types';
+import { Asset } from 'shared/api'
 import climateDataService from 'renderer/services/climateData.service';
 
 interface LoadingBarsProps {

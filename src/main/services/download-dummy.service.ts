@@ -2,7 +2,11 @@ import * as fs from "fs";
 import * as path from "path";
 import { downloadStoreService } from "./download-store.service";
 import { BandwidthLimiterService } from "./bandwidth-limiter.service";
-import { KILO_BYTES, MEGA_BYTES } from "../../lib/electron-app/utils/units"
+import { KILO_BYTES, MEGA_BYTES, GIGA_BYTES } from "../../lib/electron-app/utils/units"
+import { FILE_REJECTION_CODES } from "shared/constants";
+import { Asset } from 'shared/api'
+import { rescueApiService } from "./rescue-api-service";
+import { loggerService } from "./logger";
 
 export interface DownloadProgress {
   progress: number;
@@ -12,10 +16,14 @@ export interface DownloadProgress {
 
 interface DownloadResult {
   success: boolean;
+  statusCode?: number;
   filePath?: string;
   fileSize?: number;
   error?: string;
 }
+
+const MAX_SEEDING_SIZE = GIGA_BYTES;
+const MVP_BETA_LIMIT_SIZE = 400 * MEGA_BYTES;
 
 class DownloadService {
   private bandwidthLimiterService: BandwidthLimiterService;
@@ -40,6 +48,7 @@ class DownloadService {
     onProgress?: (progress: DownloadProgress) => void
   ): Promise<DownloadResult> {
     let filePath: string | undefined;
+    let statusCode: number | undefined;
 
     try {
       if (!downloadPath) {
@@ -55,6 +64,7 @@ class DownloadService {
 
       // Perform HTTP request
       const response = await fetch(url);
+      statusCode = response.status;
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -70,12 +80,14 @@ class DownloadService {
           const fileNameMatch = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^;\r\n]+)/);
           if (fileNameMatch) {
             guessedFileName = fileNameMatch[1];
+            console.log(`Guessed filename from Content-Disposition: ${guessedFileName}`);
           }
         }
 
         if (!guessedFileName) {
           // Retrieving filename from URL, removing query parameters if any
           guessedFileName = url.split("/").pop()?.split("?")[0];
+          console.log(`Guessed filename from URL: ${guessedFileName}`);
         }
 
         if (guessedFileName) {
@@ -83,17 +95,16 @@ class DownloadService {
           const guessedFilePath = path.join(downloadPath, guessedFileName);
           if (!fs.existsSync(guessedFilePath)) {
             fileName = guessedFileName;
-          } else if (defaultFileNamePrefix) {
-            fileName = `${defaultFileNamePrefix}_${guessedFileName}`;
           }
         }
 
         if (!fileName) {
           fileName = `${Date.now()}`; // Default filename
-          
-          if (defaultFileNamePrefix) {
+        }
+        
+        // Always Prepend default prefix if provided
+        if (defaultFileNamePrefix) {
             fileName = `${defaultFileNamePrefix}_${fileName}`;
-          }
         }
       }
 
@@ -107,6 +118,17 @@ class DownloadService {
         response.headers.get("content-length") || "0",
         10
       );
+
+      // Abort download if Content-Length exceeds MVP beta limit size
+      if (totalSize > MVP_BETA_LIMIT_SIZE) {
+        loggerService.error(`File too big for seeding (Content-Length: ${totalSize} bytes)`);
+        return {
+          success: false,
+          fileSize: totalSize,
+          filePath: filePath,
+          error: "file too big (content-length)",
+        }
+      }
 
       // Create read stream
       const reader = response.body?.getReader();
@@ -134,6 +156,19 @@ class DownloadService {
         // Write chunk
         writer.write(value);
         downloadedSize += value.length;
+
+        // Abort download if it exceeds MVP beta limit size
+        if (downloadedSize > MVP_BETA_LIMIT_SIZE) {
+          loggerService.error(`File too big for seeding (Downloaded size so far : ${downloadedSize} bytes)`);
+          writer.end();
+
+          return {
+            success: false,
+            fileSize: downloadedSize,
+            filePath: filePath,
+            error: "file too big (downloaded size)",
+          };
+        }
 
         // Calculate and report progress
         if (onProgress) {
@@ -165,12 +200,10 @@ class DownloadService {
         });
       });
 
-      // Add file to downloaded files store
-      downloadStoreService.addDownloadedFile(filePath);
-
       let result: DownloadResult = {
         success: true,
-        filePath: filePath
+        filePath: filePath,
+        statusCode: statusCode
       };
 
       // We do not trust totalSize, fetching the file size from the file
@@ -199,9 +232,67 @@ class DownloadService {
 
       return {
         success: false,
-        error: errorMessage
+        error: errorMessage,
+        statusCode: statusCode
       };
     }
+  }
+
+  async downloadAsset(
+    asset: Asset,
+    downloadPath: string,
+    fileName?: string,
+    defaultFileNamePrefix?: string,
+    onProgress?: (progress: DownloadProgress) => void
+  ): Promise<DownloadResult> {
+    const downloadResult = await this.downloadFile(
+      asset.url,
+      downloadPath,
+      fileName,
+      defaultFileNamePrefix,
+      onProgress
+    );
+
+    if (downloadResult) {
+      if (downloadResult.fileSize && downloadResult.fileSize > MVP_BETA_LIMIT_SIZE) {
+        // File is too big for seeding, call the API
+        rescueApiService.rejectAsset(
+          asset.res_id,
+          FILE_REJECTION_CODES.FILE_NOT_SUITABLE_FOR_BETA, // File too big for MVP beta
+          downloadResult.fileSize
+        );
+
+        if (downloadResult.filePath && fs.existsSync(downloadResult.filePath)) {
+          fs.unlinkSync(downloadResult.filePath);
+        }
+      } else if (downloadResult.success == true && downloadResult.filePath) {
+        // Add file to downloaded files store
+        downloadStoreService.addDownloadedFile(downloadResult.filePath);
+      } else if (downloadResult.statusCode === 404) {
+          loggerService.error(`Asset not found (404): Reporting to Rescue API.`);
+          // Link is broken, report to Rescue API
+          rescueApiService.rejectAsset(
+            asset.res_id,
+            FILE_REJECTION_CODES.HTTP_404, // Not found
+          );
+      } else if (downloadResult.statusCode === 403) {
+          loggerService.error(`Access denied (403): Reporting to Rescue API.`);
+          // Access denied, report to Rescue API
+          rescueApiService.rejectAsset(
+            asset.res_id,
+            FILE_REJECTION_CODES.HTTP_403, // Forbidden
+          );
+      } else if (downloadResult.error === "fetch failed") {
+          loggerService.error(`Network error during download: Reporting to Rescue API.`);
+          // Network error, report to Rescue API
+          rescueApiService.rejectAsset(
+            asset.res_id,
+            FILE_REJECTION_CODES.FETCH_FAILED, // Network error
+          );
+      }
+    }
+
+    return downloadResult;
   }
 }
 
@@ -213,7 +304,7 @@ export let downloadService = new DownloadService();
  * @param downloadPath - Destination directory
  * @param onProgress - Callback to track overall progress
  * @returns Promise<DownloadResult[]>
- */
+ * /
 export async function downloadMultipleFiles(
   downloads: Array<{ url: string }>,
   downloadPath: string,
@@ -247,6 +338,7 @@ export async function downloadMultipleFiles(
 
   return Promise.all(downloadPromises);
 }
+*/
 
 /**
  * Formats speed in MB/s or KB/s

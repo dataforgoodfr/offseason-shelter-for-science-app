@@ -1,8 +1,8 @@
-import { Asset, DispatchRequestPayload, DispatchResponse, DownloadProgressCallback, StatusUpdatePayload } from 'renderer/lib/types'
+import { DispatchRequestPayload, DispatchResponse, DownloadProgressCallback, StatusUpdatePayload } from 'renderer/lib/types'
 import webTorrentService from './webtorrent.service'
 import { logger } from 'renderer/lib/logger'
 import { truncateMagnetLink } from 'renderer/lib/torrent'
-import { MEGA_BYTES } from 'lib/electron-app/utils/units'
+import { Asset } from 'shared/api'
 
 class ClimateDataService { 
   /**
@@ -68,8 +68,8 @@ class ClimateDataService {
       /** broija 2025/09/03 @todo asset file name is irrelevant most of the time.
        * It can even lead to collisions with other files in the same directory.
        * Ignoring it for now. */
-      const downloadResult = await window.App.downloadFile(
-        asset.url,
+      const downloadResult = await window.App.downloadAsset(
+        asset,
         downloadPath,
         undefined,
         asset.asset_id?.toString()
@@ -83,7 +83,7 @@ class ClimateDataService {
       try {
         const seedingResult = await webTorrentService.saveFileForSeeding(
           downloadResult.filePath,
-          asset.name,
+          undefined, // as of 2025-11-07 asset.name is unreliable
           {
             onSeedingStarted: ({ magnetURI }) => {
               console.log(`Seeding démarré pour ${asset.name}: ${magnetURI}`)
@@ -103,7 +103,7 @@ class ClimateDataService {
           success: true,
           magnetLink: seedingResult.magnetURI,
           ...(downloadResult.filePath && { filePath: downloadResult.filePath }),
-          ...(downloadResult.fileSize && { fileSize: downloadResult.fileSize / MEGA_BYTES })
+          ...(downloadResult.fileSize && { fileSize: downloadResult.fileSize })
         };
       } catch (seedingError: any) {
         console.error(`Erreur seeding pour ${asset.name}:`, seedingError)
@@ -124,13 +124,16 @@ class ClimateDataService {
   ): Promise<{ success: boolean; error?: string }> {
       return new Promise(async (resolve) => {
 
-      console.info(`Nettoyage complet du client WebTorrent`)
-      const removedCount = await webTorrentService.clearAllTorrents()
+      /* console.info(`Nettoyage complet du client WebTorrent`)
+       * const removedCount = await webTorrentService.clearAllTorrents()
 
-      // Attendre que le nettoyage soit effectif
-      await new Promise(resolve => setTimeout(resolve, 3000))
+       * // Attendre que le nettoyage soit effectif
+       * await new Promise(resolve => setTimeout(resolve, 3000)) */
 
       try {
+        /** asset.name is not reliable.
+         * @todo broija 2025/11/06 : is there a way to retrieve filename from torrent metadata before download starts ?
+         * If not, asset name should be stored in DB.
         const expectedFilePath = `${downloadPath}/${asset.name}`;
         let fileExists = false;
         try {
@@ -144,8 +147,9 @@ class ClimateDataService {
             return;
           }
         } catch (checkError) {
-          console.info(`ℹ Impossible de vérifier l'existence du fichier, téléchargement normal`);
+          console.info(`Impossible de vérifier l'existence du fichier, téléchargement normal`);
         }
+        */
         
         const torrentKey = `torrent-${asset.asset_id}-${Date.now()}`
         
@@ -265,6 +269,7 @@ class ClimateDataService {
 
         if (this.isMagnetLink(asset.url)) {
           // Téléchargement torrent
+          logger.info(`Starting torrent download for asset: ${asset.asset_id}`);
           const torrentResult = await this.downloadTorrentFile(asset, downloadPath)
           result = { success: torrentResult.success, error: torrentResult.error }
         } else {
@@ -285,7 +290,7 @@ class ClimateDataService {
               asset.magnet_link = result.magnetLink;
             }
             if (result.fileSize) {
-              asset.size_mb = result.fileSize / MEGA_BYTES;
+              asset.size = result.fileSize;
             }
 
             try {
