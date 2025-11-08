@@ -2,7 +2,7 @@
 
 ## À propos du projet
 
-Shelter for Science App est un projet de TeamForChange qui vise à créer un client décentralisé permettant aux bénévoles de partager des données environnementales via le protocole torrent. L'application transforme les ordinateurs individuels en nœuds de stockage autonomes dans un réseau peer-to-peer.
+Shelter for Science App est un projet de Data for Good qui vise à créer un client décentralisé permettant aux bénévoles de partager des données environnementales via le protocole torrent. L'application transforme les ordinateurs individuels en nœuds de stockage autonomes dans un réseau peer-to-peer.
 
 ## Architecture du repository
 
@@ -20,11 +20,40 @@ Ce repository se compose de deux parties principales :
 
 ## Installation et démarrage
 
+### node with nvm (required)
+
+source: https://nodejs.org/en/download
+
+```bash
+# Download and install nvm:
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+
+source /home/<USER NAME>/.bashrc
+
+nvm install 20
+nvm use 20
+```
+
+### pnpm (required)
+
+source: https://pnpm.io/installation
+
+```bash
+curl -fsSL https://get.pnpm.io/install.sh | sh -
+
+source /home/<USER NAME>/.bashrc
+ ```
+
 ### Application Electron
 
 ```bash
 # Configuration
 cp .env.example .env  # Port API par défaut : 3000
+
+# Necessary for node-gyp
+./install_prerequisites.sh
+
+source .venv-3.11/bin/activate
 
 # Installation des dépendances
 pnpm install
@@ -32,6 +61,37 @@ pnpm install
 # Démarrage en mode développement
 pnpm run dev
 ```
+
+## Windows
+
+Installing prerequisites with PowerShell :
+
+```bash
+winget install OpenJS.NodeJS.LTS
+node --version
+npm --version
+
+npm install -g pnpm
+
+winget install Python.Python.3.11
+
+winget install Microsoft.VisualStudio.2022.BuildTools
+```
+
+If node and npm commands are not recognized, this could help :
+
+```bash
+$env:NODE_INSTALLATION_PATH = "<Path to node installation dir>"
+$env:PNPM_INSTALLATION_PATH = "$env:USERPROFILE\AppData\Roaming\npm" # Since pnpm has been installed globally
+```
+
+Install project dependencies :
+
+```bash
+pnpm install
+```
+
+You may have to open a terminal as administrator to run the previous command, if PowerShell complains about symlink creation permission.
 
 ### Serveur mock-dispatcher
 
@@ -50,5 +110,3 @@ pnpm run start:dev
 
 Le fichier .env contient les variables d'environnement nécessaires, notamment :
 - Port de l'API dispatcher (par défaut : 3000)
-
-

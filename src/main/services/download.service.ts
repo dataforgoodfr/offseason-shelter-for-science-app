@@ -4,6 +4,8 @@ import * as path from "path";
 import type { Readable } from "stream";
 import httpService from "./http.service";
 import { getDownloadPath } from "./store.service";
+import { downloadStoreService } from "./download-store.service";
+import { MEGA_BYTES } from "../../lib/electron-app/utils/units";
 
 export async function downloadDataset(
   datasetId: string,
@@ -64,6 +66,10 @@ export async function downloadDataset(
   return new Promise((resolve, reject) => {
     writer.on("finish", () => {
       console.log(`Download completed: ${filePath}`);
+      
+      // Store the downloaded file path in the database
+      downloadStoreService.addDownloadedFile(filePath);
+
       resolve(filePath);
     });
 
@@ -84,7 +90,7 @@ export async function downloadDataset(
 }
 
 function formatSpeed(bytesPerSecond: number): string {
-  const mbps = bytesPerSecond / (1024 * 1024);
+  const mbps = bytesPerSecond / (MEGA_BYTES);
   if (mbps >= 1) {
     return `${mbps.toFixed(1)} MB/s`;
   }

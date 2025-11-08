@@ -1,25 +1,32 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
 
 import { createWindow } from 'lib/electron-app/factories/windows/create'
-import { ENVIRONMENT } from 'shared/constants'
+import { ENVIRONMENT, WINDOW_DIMENSIONS } from 'shared/constants'
 import { displayName } from '~/package.json'
 
 export async function MainWindow() {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+
   const window = createWindow({
     id: 'main',
     title: displayName,
-    width: 480,
-    height: 750,
+    width: WINDOW_DIMENSIONS.MAIN.WIDTH,
+    height: WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED,
+    frame: false, // Supprime la barre de titre native
+    transparent: true,
     show: false,
-    center: true,
+    center: false,
+    x: Math.floor((screenWidth - WINDOW_DIMENSIONS.MAIN.WIDTH) / 2) - 100,
+    y: Math.floor((screenHeight - WINDOW_DIMENSIONS.MAIN.HEIGHT.COLLAPSED) / 2),
     movable: true,
     resizable: false,
     alwaysOnTop: true,
     autoHideMenuBar: true,
-
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
+      scrollBounce: false,
     },
   })
 
@@ -28,8 +35,8 @@ export async function MainWindow() {
       window.webContents.openDevTools({ mode: 'detach' })
     }
 
-    window.show()
-  })
+    window.show();
+  });
 
   window.on('close', () => {
     for (const window of BrowserWindow.getAllWindows()) {

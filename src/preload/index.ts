@@ -1,4 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { ErrorHandlingOptions } from 'main/services/rescue-api-service';
+import { Asset } from 'shared/api';
 
 declare global {
   interface Window {
@@ -28,9 +30,11 @@ const API = {
     ipcRenderer.invoke('write-torrent-chunk', streamId, chunkData, offset),
   closeTorrentStream: (streamId: string, fileName: string) => 
     ipcRenderer.invoke('close-torrent-stream', streamId, fileName),
+  
   // Méthode pour lire un fichier pour création de torrent
   getFileForTorrent: (filePath: string) => 
     ipcRenderer.invoke('get-file-for-torrent', filePath),
+
   // Méthodes pour la persistance du seeding
   saveSeedingInfo: (filePath: string, info: any) => 
     ipcRenderer.invoke('save-seeding-info', filePath, info),
@@ -39,7 +43,110 @@ const API = {
   removeSeedingInfo: (filePath: string) => 
     ipcRenderer.invoke('remove-seeding-info', filePath),
   scanDirectoryForSeeding: (directoryPath: string) =>
-    ipcRenderer.invoke('scan-directory-for-seeding', directoryPath)
+    ipcRenderer.invoke('scan-directory-for-seeding', directoryPath),
+
+    // Methods for logging
+    addLog: (logData: any) => ipcRenderer.invoke('logger:add-log', logData),
+    getLogs: () => ipcRenderer.invoke('logger:get-logs'),
+    clearLogs: () => ipcRenderer.invoke('logger:clear-logs'),
+    onLoggerNewLog: (callback: (log: any) => void) => {
+      ipcRenderer.on('logger:new-log', (_, log) => callback(log))
+      return () => ipcRenderer.removeAllListeners('logger:new-log')
+    },
+    onLoggerLogsCleared: (callback: () => void) => {
+      ipcRenderer.on('logger:logs-cleared', () => callback())
+      return () => ipcRenderer.removeAllListeners('logger:logs-cleared')
+    },
+
+      // Downloaded files persistence
+  getDownloadedFiles: () => 
+    ipcRenderer.invoke('get-downloaded-files'),
+  addDownloadedFile: (filePath: string) => 
+    ipcRenderer.invoke('add-downloaded-file', filePath),
+  cleanupDownloadedFiles: (directoryPath: string) =>
+    ipcRenderer.invoke('cleanup-downloaded-files', directoryPath),
+
+  // Dummy downloader
+  downloadFile: (url: string, downloadPath: string, filename?: string, defaultFileNamePrefix?: string) =>
+    ipcRenderer.invoke('download-file', url, downloadPath, filename, defaultFileNamePrefix),
+
+  downloadAsset: (asset: Asset, downloadPath: string, filename?: string, defaultFileNamePrefix?: string) =>
+    ipcRenderer.invoke('asset:download', asset, downloadPath, filename, defaultFileNamePrefix),
+ 
+   // Obtenir l'espace disque disponible (libre) pour un chemin donné
+  getFreeSpace: (path: string) => ipcRenderer.invoke('get-free-space', path),
+
+  // Remaining free space
+  getRemainingFreeSpace: () => ipcRenderer.invoke('free-space:get-remaining'),
+  checkRemainingFreeSpace: () => ipcRenderer.invoke('free-space:check-remaining'),
+
+  // Free space event listener
+  onFreeSpaceExhausted: (callback: () => void) => {
+    ipcRenderer.on('free-space:exhausted', () => callback())
+    return () => ipcRenderer.removeAllListeners('free-space:exhausted')
+  },
+
+  // Détecter la bande passante réseau actuelle
+  detectBandwidth: () => ipcRenderer.invoke('detect-bandwidth'),
+
+  // Save prefs
+  setStorageAllocation: (storageBytes: number) => 
+    ipcRenderer.invoke('set-storage-allocation', storageBytes),
+  setBandwidthAllocation: (bandwidthBps: number | undefined) => 
+    ipcRenderer.invoke('set-bandwidth-allocation', bandwidthBps),
+
+  // Récupérer les préférences sauvegardées
+  getStorageAllocation: () => ipcRenderer.invoke('get-storage-allocation'),
+  getBandwidthAllocation: () => ipcRenderer.invoke('get-bandwidth-allocation'),
+
+ // Nouvelles méthodes pour éviter CORS
+  rescueApiCall: (route: string, options: any, errorHandlingOptions?: ErrorHandlingOptions) => 
+    ipcRenderer.invoke('rescue-api:call', route, options, errorHandlingOptions),
+
+  checkFileExists: (filePath: string) => 
+    ipcRenderer.invoke('check-file-exists', filePath),
+
+  // Initialization methods
+  startInitialization: (path: string) => ipcRenderer.invoke('init:start', path),
+  retryInitialization: () => ipcRenderer.invoke('init:retry'),
+  
+  // Initialization event listeners
+  onInitializationStepStatus: (callback: (data: { stepId: string, status: string }) => void) => {
+    ipcRenderer.on('init:step-status', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('init:step-status')
+  },
+  onInitializationStateChange: (callback: (data: { state: string, value: boolean }) => void) => {
+    ipcRenderer.on('init:state-change', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('init:state-change')
+  },
+  onInitializationComplete: (callback: (data: { freeBytes: number }) => void) => {
+    ipcRenderer.on('init:complete', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('init:complete')
+  },
+  onInitializationError: (callback: (data: { error: string }) => void) => {
+    ipcRenderer.on('init:error', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('init:error')
+  },
+
+  // Window height control
+  expandMainWindowHeight: (expansionLevel: number) => ipcRenderer.invoke('window:expand-height', expansionLevel),
+  setWindowHeight: (height: number) => ipcRenderer.invoke('window:set-height', height),
+  
+  // Window control methods
+  minimize: () => ipcRenderer.invoke('window:minimize'),
+  close: () => ipcRenderer.invoke('window:close'),
+  startDragging: () => ipcRenderer.invoke('window:start-dragging'),
+  moveWindow: (deltaX: number, deltaY: number) => ipcRenderer.invoke('window:move', deltaX, deltaY),
+
+  // Cleanup event listeners
+  onCleanupFilesSuccess: (callback: () => void) => {
+    ipcRenderer.on('cleanup:files-success', () => callback())
+    return () => ipcRenderer.removeAllListeners('cleanup:files-success')
+  },
+  onCleanupError: (callback: (data: { error: string }) => void) => {
+    ipcRenderer.on('cleanup:error', (_, data) => callback(data))
+    return () => ipcRenderer.removeAllListeners('cleanup:error')
+  },
 }
 
 contextBridge.exposeInMainWorld('App', API)

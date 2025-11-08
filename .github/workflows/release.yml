@@ -14,6 +14,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: Setup Python for node-gyp
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
       - run: npm i -g --force corepack && corepack enable
 
       - name: Install Node.js, NPM and PNPM
@@ -37,6 +43,8 @@ jobs:
 
       - name: Release Electron app
         uses: daltonmenezes/action-electron-builder@v1.0.1
+        env:
+          API_BASE_URL: "https://us-climate-data-dispatcher.services.dataforgood.fr"
         with:
           package_manager: "pnpm"
           # GitHub token, automatically provided to the action

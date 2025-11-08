@@ -40,7 +40,9 @@ export default {
     artifactName,
     category: 'Utilities',
     synopsis: description,
-    target: ['AppImage', 'deb', 'pacman', 'freebsd', 'rpm'],
+    // broija 2025-08-21: limit to AppImage for now to speed up the build
+    // target: ['AppImage', 'deb', 'pacman', 'freebsd', 'rpm'],
+    target: ['AppImage'],
   },
 
   win: {

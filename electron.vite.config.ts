@@ -59,6 +59,10 @@ export default defineConfig({
 
     server: {
       port: settings.port,
+      watch: {
+        usePolling: true,
+        interval: 1000,
+      },
     },
 
     plugins: [

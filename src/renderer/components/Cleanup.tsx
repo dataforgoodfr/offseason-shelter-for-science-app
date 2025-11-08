@@ -1,0 +1,146 @@
+import { useState, useEffect } from "react";
+import ErrorActions from "./ErrorActions";
+import { InitStatus, InitStep } from "renderer/lib/types";
+import {
+  useCleanup,
+  STEP_STATUS_INPROGRESS,
+  STEP_STATUS_SUCCESS,
+  STEP_STATUS_ERROR,
+} from "renderer/hooks/useCleanup";
+
+const processingIconUrl = new URL('../assets/icons/processing.svg', import.meta.url).href;
+const check_markIconUrl = new URL('../assets/icons/check_mark.svg', import.meta.url).href;
+
+import { logger } from "renderer/lib/logger";
+import { leadingVariants } from "renderer/tailwind-pattern";
+
+interface CleanupProps {
+  onCleanupComplete?: () => void;
+}
+
+const Cleanup = ({ onCleanupComplete }: CleanupProps) => {
+  const [hasError, setHasError] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const handleError = (error: Error) => {
+    logger.error(error.message);
+    setHasError(true);
+    setError(error);
+  };
+
+  const handleSubmitError = () => {
+    if (error) {
+      logger.info("Error submitted", { error: error.message });
+    }
+  };
+
+  const handleComplete = () => {
+    if (onCleanupComplete) {
+      onCleanupComplete();
+    }
+  };
+
+  const { steps, startCleanup } = useCleanup({
+    onError: handleError,
+    onComplete: handleComplete,
+  });
+
+  const renderIcon = (status: InitStatus) => {
+    switch (status) {
+      case STEP_STATUS_INPROGRESS:
+        return (
+          <img
+            src={processingIconUrl}
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin"
+            alt="Processing"
+          />
+        );
+      case STEP_STATUS_SUCCESS:
+        return (
+          <img
+            src={check_markIconUrl}
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px]"
+            alt="Success"
+          />
+        );
+      case STEP_STATUS_ERROR:
+        return <div className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] rounded-full bg-red-500" />;
+      default:
+        return (
+          <img
+            src={processingIconUrl}
+            className="w-[14px] h-[14px] rotate-0 opacity-100 top-[1px] left-[1px] animate-spin"
+            alt="Processing"
+          />
+        );
+    }
+  };
+
+  const getStatusText = (step: InitStep) => {
+    if (step.status === STEP_STATUS_SUCCESS) {
+      return `${step.label} : DONE !`;
+    } else if (step.status === STEP_STATUS_INPROGRESS) {
+      return `${step.label} : IN PROGRESS...`;
+    }
+    return step.label;
+  };
+
+  return (
+    <div className="w-full h-[190px] gap-[48px] pt-[16px] flex flex-col items-center">
+
+      <div
+        className="w-full h-[36px] flex items-center justify-center opacity-100"
+        style={{ transform: "rotate(0deg)" }}
+      >
+        <span
+          className={leadingVariants.title}
+          style={{
+            fontFamily: "Akzidenz-Grotesk Pro",
+            fontSize: "18.57px",
+            letterSpacing: '-1%'
+          }}
+        >
+          {hasError ? ("Error, unable to cleanup shelter") :
+            (
+              <>
+                Starting cleanup of
+                <br />
+                your shelter...
+              </>
+            )}
+
+        </span>
+      </div>
+
+      {hasError ? (
+        <ErrorActions onRetry={startCleanup} onSubmitError={handleSubmitError} />
+      ) : (
+        // Steps
+        <div className="flex flex-col justify-center items-center h-[64px] gap-[8px]">
+          {steps.map((step: InitStep) => (
+            <div key={step.id} className="w-full h-[16px] flex items-center gap-[8px]">
+              <div className="text-white">
+                {renderIcon(step.status)}
+              </div>
+
+              <div
+                className="flex items-center opacity-100 whitespace-nowrap"
+                style={{ transform: "rotate(0deg)" }}
+              >
+                <span
+                  className="text-[9px] font-normal uppercase tracking-[0.1em] leading-[100%] text-white"
+                  style={{ fontFamily: "Akzidenz-Grotesk Pro" }}
+                >
+                  {getStatusText(step)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+export default Cleanup;
