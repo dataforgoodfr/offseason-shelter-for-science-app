@@ -33,7 +33,12 @@ export function registerDownloadDataset() {
         throw new Error('No download path set')
       }
 
-      const filePath = join(downloadPath, fileName)
+      const filePath = join(downloadPath, fileName);
+      
+      // Check if file already exists
+      if (fs.existsSync(filePath)) {
+        throw new Error(`Creating torrent stream ${fileName}: File already exists`);
+      }
       const fileHandle = await fs.open(filePath, 'w')
       
       // Stocker le handle pour les écritures futures

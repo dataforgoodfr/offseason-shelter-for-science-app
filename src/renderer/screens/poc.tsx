@@ -267,6 +267,7 @@ export function MainScreen() {
 
     if (selectedPath) {
       setIsCleaningUp(true);
+      /** @todo cleanup torrents */
       window.App.cleanupDownloadedFiles(selectedPath);
     }
   };

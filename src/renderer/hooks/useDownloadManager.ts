@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
-import { Asset, DispatchRequestPayload, DownloadProgressCallback } from 'renderer/lib/types';
+import { DispatchRequestPayload, DownloadProgressCallback } from 'renderer/lib/types';
 import climateDataService from 'renderer/services/climateData.service';
 import { logger } from 'renderer/lib/logger';
-import { GIGA_BYTES } from 'lib/electron-app/utils/units';
+import { Asset } from 'shared/api'
 
 interface DownloadState {
   progress: number;
@@ -45,7 +45,7 @@ export function useDownloadManager() : DownloadManager {
       const payload: DispatchRequestPayload = {
         name: "Climate Rescue Node",
         description: "Automated data rescue system",
-        free_space_gb: freeSpace / GIGA_BYTES,
+        free_space: freeSpace,
         node_id: "1" // broija 2025/09/12 : should be a number
       };
 
@@ -104,7 +104,7 @@ export function useDownloadManager() : DownloadManager {
 
       const remainingFreeSpace = await window.App.checkRemainingFreeSpace();
       if (!remainingFreeSpace) {
-        callbacks.onError?.('Free space exhausted', undefined);
+        callbacks.onError?.('Free space exhausted');
         return false;
       }
 

@@ -1,4 +1,5 @@
 import { config } from "config";
+import { RESCUER_ID } from "shared/constants";
 
 export interface ErrorHandlingOptions {
     retry: number;
@@ -85,6 +86,21 @@ class RescueApiService {
                 errorHandlingOptions
             );
         }
+    }
+
+    async rejectAsset(resource_id: number, reason: number, size?: number): Promise<CallResult> {
+        return this.call('/asset/reject', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                    rescuer_id: RESCUER_ID,
+                    code: reason,
+                    res_id: resource_id,
+                    size: size
+                }),
+        });
     }
 
     private async handleRetry(route: string, options: any, fallbackResult: CallResult, errorHandlingOptions?: ErrorHandlingOptions): Promise<CallResult> {

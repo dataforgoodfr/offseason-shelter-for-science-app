@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { ErrorHandlingOptions } from 'main/services/rescue-api-service';
+import { Asset } from 'shared/api';
 
 declare global {
   interface Window {
@@ -68,7 +69,10 @@ const API = {
   // Dummy downloader
   downloadFile: (url: string, downloadPath: string, filename?: string, defaultFileNamePrefix?: string) =>
     ipcRenderer.invoke('download-file', url, downloadPath, filename, defaultFileNamePrefix),
-  
+
+  downloadAsset: (asset: Asset, downloadPath: string, filename?: string, defaultFileNamePrefix?: string) =>
+    ipcRenderer.invoke('asset:download', asset, downloadPath, filename, defaultFileNamePrefix),
+ 
    // Obtenir l'espace disque disponible (libre) pour un chemin donné
   getFreeSpace: (path: string) => ipcRenderer.invoke('get-free-space', path),
 
