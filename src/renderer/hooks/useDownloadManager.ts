@@ -3,7 +3,6 @@ import { DispatchRequestPayload, DownloadProgressCallback } from 'renderer/lib/t
 import climateDataService from 'renderer/services/climateData.service';
 import { logger } from 'renderer/lib/logger';
 import { Asset } from 'shared/api'
-import { GIGA_BYTES } from 'lib/electron-app/utils/units';
 
 interface DownloadState {
   progress: number;
@@ -46,7 +45,7 @@ export function useDownloadManager() : DownloadManager {
       const payload: DispatchRequestPayload = {
         name: "Climate Rescue Node",
         description: "Automated data rescue system",
-        free_space_gb: freeSpace / GIGA_BYTES,
+        free_space: freeSpace,
         node_id: "1" // broija 2025/09/12 : should be a number
       };
 

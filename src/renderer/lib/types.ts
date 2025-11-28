@@ -11,7 +11,7 @@ export interface InitStep {
 export interface DispatchRequestPayload {
   name: string
   description: string
-  free_space_gb: number
+  free_space: number
   node_id: string // broija 2025/09/04 : should probably be a number, named rescuer_id
 }
 
@@ -20,7 +20,7 @@ export interface DispatchResponse {
   message: string
   received_data: {
     description: string
-    free_space_gb: number
+    free_space: number
     name: string
     node_id: string
   }

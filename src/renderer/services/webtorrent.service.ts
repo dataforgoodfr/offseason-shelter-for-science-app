@@ -549,6 +549,7 @@ public async startTorrenting(
 
         console.log('🔄 Reprise du seeding pour', filePaths.length, 'fichiers...');
 
+        /** @todo broija 28/11/2025 Improve this to use concurrency while limiting it. */
         for (const filePath of filePaths) {
           const info = seedingData[filePath];
           await this.resumeSeedingForFile(filePath, info);
