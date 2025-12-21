@@ -3,6 +3,7 @@
 import WebTorrent from 'webtorrent/dist/webtorrent.min.js';
 import { logger } from 'renderer/lib/logger';
 import { truncateMagnetLink } from 'renderer/lib/torrent';
+import { PromisePool } from 'shared/promise-pool';
 
 // === TYPES ET INTERFACES ===
 export interface TorrentProgress {
@@ -62,7 +63,10 @@ export interface SeedingCallbacks {
   onSeedingStarted?: (data: { torrentKey: string; magnetURI: string; name: string; filePath: string }) => void;
   onSeedingStopped?: (data: { torrentKey: string; name: string }) => void;
   onError?: (data: { torrentKey?: string; error: string }) => void;
+  onFileNotFound?: (data: { filePath: string }) => void;
 }
+
+type SeedingPromise = Promise< { magnetURI: string; torrent: WebTorrent.Torrent; error?: string } >;
 
 export class WebTorrentService {
   public client!: WebTorrent.Instance;
@@ -74,6 +78,17 @@ export class WebTorrentService {
     this.initializeClient();
     this.startProgressUpdates();
     this.resumeSeedingOnStartup();
+  }
+
+  // === CLEANUP ===
+  public destroy(): void {
+    if (this.progressUpdateInterval) {
+      clearInterval(this.progressUpdateInterval);
+      this.progressUpdateInterval = null;
+    }
+    
+    this.progressCallbacks.clear();
+    this.client.destroy();
   }
 
   // === INITIALISATION ===
@@ -124,31 +139,16 @@ public async startTorrenting(
   console.log('Starting torrent:', torrentKey, torrentID);
 
   try {
-    // NETTOYAGE COMPLET ET SÉCURISÉ AVANT CHAQUE AJOUT
-    console.log('🧹 Nettoyage complet avant ajout du torrent');
-   
-    const torrents = [...this.client.torrents]; // Copie pour éviter les modifications pendant l'itération
-    torrents.forEach((torrent, index) => {
-      if (torrent && typeof torrent.destroy === 'function') {
-        console.log(`🗑️ Destroying torrent ${index + 1}/${torrents.length}: ${torrent.name || torrent.infoHash}`);
-
-        /** @todo use destroy callback to trigger download ? */
-        torrent.destroy();
-      }
-    });
-
-    // Attendre que le nettoyage soit effectif
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    console.log('Nettoyage terminé, ajout du nouveau torrent');
-
     logger.info("Downloading torrent", truncateMagnetLink(torrentID));
-    const torrent = this.client.add(torrentID, {});
+    const torrent = this.client.add(
+      torrentID,
+    );
     (torrent as any).key = torrentKey;
 
     this.setupTorrentEvents(torrent, callbacks);
 
   } catch (error) {
-    console.error('Erreur lors du démarrage du torrent:', error);
+    logger.error('Erreur lors du démarrage du torrent:', error);
     callbacks.onError?.({
       torrentKey,
       error: error instanceof Error ? error.message : 'Erreur inconnue'
@@ -174,29 +174,28 @@ public async startTorrenting(
   }
 
   // === CRÉATION ET SEEDING DE TORRENTS ===
-  public async createMagnetLinkFromFile(
+  public async createMagnetLinkFromFileAndSeed(
     filePath: string, 
     fileName?: string, 
     callbacks: SeedingCallbacks = {}
-  ): Promise<{ magnetURI: string; torrent: WebTorrent.Torrent; error?: string }> {
+  ): SeedingPromise {
     return new Promise((resolve) => {
       try {
         window.App.getFileForTorrent(filePath).then((fileResult: any) => {
           if (!fileResult.success) {
             const error = fileResult.error;
-            callbacks.onError?.({ error });
+            callbacks.onFileNotFound?.({ filePath });
             resolve({ magnetURI: '', torrent: null as any, error });
             return;
           }
 
-          const { fileData, originalFileName } = fileResult;
+          const { fileData, originalFileName, mtime, hash } = fileResult;
 
           // CRÉER UN NOM UNIQUE
           const baseFileName = fileName || originalFileName;
-          const timestamp = Date.now();
-          const pathHash = filePath.split('/').pop() || 'unknown';
-          const uniqueTorrentName = `${baseFileName}_${pathHash}_${timestamp}`;
 
+          // broija 2025-12-11 : unicity enforced with content hash and mtime
+          const uniqueTorrentName = `${baseFileName}_${hash}_${mtime}`;
           const file = new File([fileData], uniqueTorrentName);
           
           const options = {
@@ -207,18 +206,19 @@ public async startTorrenting(
             announceList: [
               ['wss://tracker.btorrent.xyz'], // Down as of 2025/09/18
               ['wss://tracker.openwebtorrent.com'],
-            ]
+            ],
           };
 
           const torrent = this.client.seed([file], options);
+          
+          const timestamp = Date.now();
           const torrentKey = `seeded-${timestamp}`;
           (torrent as any).key = torrentKey;
-          
 
           this.setupSeedingEvents(torrent, callbacks, filePath);
 
           torrent.on('ready', () => {
-            console.log('Torrent créé et seeding démarré:', torrent.name);
+            logger.info(`Torrent créé et seeding démarré: ${torrent.name}`);
             
             callbacks.onSeedingStarted?.({
               torrentKey,
@@ -304,6 +304,10 @@ public async startTorrenting(
       }));
   }
 
+  public getTorrentCount(): number {
+    return this.client.torrents.length;
+  }
+
   // === GESTION DES ÉVÉNEMENTS ===
   private setupTorrentEvents(torrent: WebTorrent.Torrent, callbacks: TorrentCallbacks): void {
     const torrentKey = (torrent as any).key;
@@ -329,6 +333,18 @@ public async startTorrenting(
       
       callbacks.onDone?.({ torrentKey, info });
       this.updateTorrentProgress();
+    });
+
+    torrent.on('download', () => {
+      logger.debug(`Downloading torrent: ${torrent.name} - ${ (torrent.progress * 100).toFixed(2) }%`);
+    });
+
+    torrent.on('upload', () => {
+      logger.debug(`Uploading torrent: ${torrent.name} - ${ (torrent.progress * 100).toFixed(2) }%`);
+    });
+
+    torrent.on('wire', () => {
+      logger.debug(`New peer connected to torrent: ${torrent.name}`);
     });
   }
 
@@ -505,7 +521,7 @@ public async startTorrenting(
   ): Promise<{ magnetURI: string; error?: string }> {
     try {
       // Créer un torrent à partir du fichier téléchargé
-      const result = await this.createMagnetLinkFromFile(filePath, fileName, callbacks);
+      const result = await this.createMagnetLinkFromFileAndSeed(filePath, fileName, callbacks);
       
       if (!result.error) {
         const seedingInfo = {
@@ -543,52 +559,56 @@ public async startTorrenting(
         const filePaths = Object.keys(seedingData);
         
         if (filePaths.length === 0) {
-          console.log('🌱 Aucun fichier à seeder au démarrage');
+          logger.info('Aucun fichier à seeder au démarrage');
           return;
         }
 
-        console.log('🔄 Reprise du seeding pour', filePaths.length, 'fichiers...');
+        logger.debug(`Reprise du seeding pour ${filePaths.length} fichiers...`);
 
-        /** @todo broija 28/11/2025 Improve this to use concurrency while limiting it. */
-        for (const filePath of filePaths) {
-          const info = seedingData[filePath];
-          await this.resumeSeedingForFile(filePath, info);
-          
-          // Petit délai entre chaque torrent pour éviter de surcharger
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        const promisePool = new PromisePool(
+          10,
+          () => logger.debug('Reprise du seeding terminée')
+        );
+        promisePool.setLogger(logger.debug)
 
-        console.log('Reprise du seeding terminée');
+        promisePool.load(
+          filePaths,
+          (filePath: string) => {
+            const info = seedingData[filePath];
+            return async () => await this.resumeSeedingForFile(filePath, info);
+          }
+        );
       } catch (error) {
         console.error('❌ Erreur lors de la reprise du seeding:', error);
       }
     }, 2000); // Délai de 2 secondes après l'initialisation
   }
 
-  // 🔄 Reprendre le seeding pour un fichier spécifique
-  private async resumeSeedingForFile(filePath: string, seedingInfo: any): Promise<void> {
-    try {
-      // Vérifier que le fichier existe encore
-      const fileResult = await window.App.getFileForTorrent(filePath);
+  // Reprendre le seeding pour un fichier spécifique
+  private async resumeSeedingForFile(filePath: string, seedingInfo: any): SeedingPromise {
+    try {     
+      logger.debug(`Resuming seeding for: ${seedingInfo.name}\n${seedingInfo.magnetURI}`);
       
-      if (!fileResult.success) {
-        console.log('🗑️ Fichier supprimé, nettoyage:', filePath);
-        await window.App.removeSeedingInfo(filePath);
-        return;
-      }
-
-      console.log('🌱 Reprise du seeding pour:', seedingInfo.name);
-      
-      // Recréer le torrent avec le même nom pour essayer de garder le même hash
-      const result = await this.createMagnetLinkFromFile(filePath, seedingInfo.name);
-      
-      if (result.error) {
-        console.error('❌ Erreur reprise seeding:', result.error);
-      } else {
-        console.log('Seeding repris:', seedingInfo.name);
-      }
-    } catch (error) {
-      console.error('❌ Erreur reprise seeding pour', filePath, ':', error);
+      /** broija 2025/11/28 : It seems that there is no other simple way to "resume" seeding
+       * than re-creating the magnet link then call seed method again. */
+      return this.createMagnetLinkFromFileAndSeed(
+        filePath, 
+        seedingInfo.name, {
+            onSeedingStarted: ({ magnetURI }) => {
+              logger.debug(`Seeding resumed for ${seedingInfo.name}: ${magnetURI}`)
+            },
+            onError: ({ error }) => {
+              logger.error(`Error while resuming seeding for ${seedingInfo.name}:`, error)
+            },
+            onFileNotFound: ({ filePath }) => {
+              logger.debug('Fichier supprimé, nettoyage:', filePath);
+              window.App.removeSeedingInfo(filePath);
+            }
+        }
+      )
+    } catch (err) {
+      console.error('❌ Erreur reprise seeding pour', filePath, ':', err);
+      return { magnetURI: '', torrent: null, error: `Erreur lors de la reprise du seeding : ${err}` };
     }
   }
   
@@ -608,19 +628,6 @@ public async startTorrenting(
       bytesReceived: torrent.received
     };
   }
-
-  // === CLEANUP ===
-  public destroy(): void {
-    if (this.progressUpdateInterval) {
-      clearInterval(this.progressUpdateInterval);
-      this.progressUpdateInterval = null;
-    }
-    
-    this.progressCallbacks.clear();
-    this.client.destroy();
-  }
-
-// Dans webTorrentService
 
 /**
  * Récupère un torrent existant par son magnetURI (SYNCHRONE)
@@ -700,7 +707,7 @@ public async removeTorrentByInfoHash(infoHash: string): Promise<boolean> {
       return true;
     }
     
-    console.log(`ℹAucun torrent trouvé pour: ${infoHash}`);
+    console.log(`Aucun torrent trouvé pour: ${infoHash}`);
     return false;
   } catch (error) {
     console.error('Erreur removeTorrentByInfoHash:', error);
@@ -719,6 +726,8 @@ public async clearAllTorrents(): Promise<number> {
         torrent.destroy();
       }
     });
+
+    window.App.clearSeedingData();
     
     return torrents.length;
   } catch (error) {
@@ -729,5 +738,12 @@ public async clearAllTorrents(): Promise<number> {
   
 }
 
-const webTorrentService = new WebTorrentService();
-export default webTorrentService;
+// Singleton instance
+let webTorrentServiceInstance: WebTorrentService | null = null;
+
+export function getWebTorrentService(): WebTorrentService {
+  if (!webTorrentServiceInstance) {
+    webTorrentServiceInstance = new WebTorrentService();
+  }
+  return webTorrentServiceInstance;
+}

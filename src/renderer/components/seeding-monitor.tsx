@@ -1,6 +1,6 @@
 import type React from 'react'
 import { useSeedingEvents } from 'renderer/hooks'
-import webTorrentService from 'renderer/services/webtorrent.service'
+import { getWebTorrentService } from 'renderer/services/webtorrent.service'
 import { ArrowPathIcon } from '@heroicons/react/24/outline'
 
 export const SeedingMonitor: React.FC = () => {
@@ -18,7 +18,7 @@ export const SeedingMonitor: React.FC = () => {
       )
 
       // Arrêter le seeding côté WebTorrent
-      webTorrentService.stopSeeding(torrentKey)
+      getWebTorrentService().stopSeeding(torrentKey)
 
       // Supprimer les données du store en utilisant filePath comme clé
       await window.App.removeSeedingInfo(torrentKey)

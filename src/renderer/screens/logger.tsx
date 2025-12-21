@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { MagnifyingGlassIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { LOG_SOURCE_MAIN, LOG_SOURCE_RENDERER, LOG_SOURCE_SYSTEM, LogSource } from "lib/electron-app/types/logger";
 
+const MAX_LOGS = 1000;
+
 // Types
 interface LogEntry {
   id: string;
@@ -25,7 +27,14 @@ export function LoggerScreen() {
 
     // Listen for new logs
     const removeListener = window.App.onLoggerNewLog((log: LogEntry) => {
-      setLogs(prev => [...prev, log]);
+      setLogs(prev => {
+        const newLogs = [...prev, log];
+        // Limit to MAX_LOGS to match the service limit
+        if (newLogs.length > MAX_LOGS) {
+          return newLogs.slice(-MAX_LOGS);
+        }
+        return newLogs;
+      });
     });
 
     // Listen for logs cleared notification

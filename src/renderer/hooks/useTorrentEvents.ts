@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import webTorrentService from '../services/webtorrent.service';
+import { getWebTorrentService } from '../services/webtorrent.service';
 import type { TorrentCallbacks, TorrentProgress } from '../services/webtorrent.service';
 
 interface TorrentDownloadState {
@@ -33,6 +33,8 @@ type SetTorrentState = React.Dispatch<React.SetStateAction<TorrentDownloadState>
 export const useTorrentEvents = (setDownloadState: SetTorrentState) => {
   const currentTorrentKey = useRef<string | null>(null);
 
+  const webTorrentService = getWebTorrentService();
+
   useEffect(() => {
     // Callback pour le progrès global
     const handleProgress = (progress: TorrentProgress) => {
@@ -51,7 +53,6 @@ export const useTorrentEvents = (setDownloadState: SetTorrentState) => {
       }
     };
 
-    // S'abonner au progrès global
     webTorrentService.subscribeToProgress(handleProgress);
 
     // Cleanup

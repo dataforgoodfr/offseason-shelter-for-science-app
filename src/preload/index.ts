@@ -40,29 +40,39 @@ const API = {
     ipcRenderer.invoke('save-seeding-info', filePath, info),
   getSeedingData: () => 
     ipcRenderer.invoke('get-seeding-data'),
+  clearSeedingData: () =>
+    ipcRenderer.invoke('seeding:clear'),
   removeSeedingInfo: (filePath: string) => 
     ipcRenderer.invoke('remove-seeding-info', filePath),
   scanDirectoryForSeeding: (directoryPath: string) =>
     ipcRenderer.invoke('scan-directory-for-seeding', directoryPath),
+  onCleanupTorrents: (callback: () => void) => {
+    ipcRenderer.on('torrent:cleanup', () => callback())
+    return () => ipcRenderer.removeAllListeners('torrent:cleanup')
+  },
+  onSeedDirectoryContent: (callback: () => void) => {
+    ipcRenderer.on('torrent:seed-directory-content', () => callback())
+    return () => ipcRenderer.removeAllListeners('torrent:seed-directory-content')
+  },
 
-    // Methods for logging
-    addLog: (logData: any) => ipcRenderer.invoke('logger:add-log', logData),
-    getLogs: () => ipcRenderer.invoke('logger:get-logs'),
-    clearLogs: () => ipcRenderer.invoke('logger:clear-logs'),
-    onLoggerNewLog: (callback: (log: any) => void) => {
-      ipcRenderer.on('logger:new-log', (_, log) => callback(log))
-      return () => ipcRenderer.removeAllListeners('logger:new-log')
-    },
-    onLoggerLogsCleared: (callback: () => void) => {
-      ipcRenderer.on('logger:logs-cleared', () => callback())
-      return () => ipcRenderer.removeAllListeners('logger:logs-cleared')
-    },
+  // Methods for logging
+  addLog: (logData: any) => ipcRenderer.invoke('logger:add-log', logData),
+  getLogs: () => ipcRenderer.invoke('logger:get-logs'),
+  clearLogs: () => ipcRenderer.invoke('logger:clear-logs'),
+  onLoggerNewLog: (callback: (log: any) => void) => {
+    ipcRenderer.on('logger:new-log', (_, log) => callback(log))
+    return () => ipcRenderer.removeAllListeners('logger:new-log')
+  },
+  onLoggerLogsCleared: (callback: () => void) => {
+    ipcRenderer.on('logger:logs-cleared', () => callback())
+    return () => ipcRenderer.removeAllListeners('logger:logs-cleared')
+  },
 
-      // Downloaded files persistence
+  // Downloaded files persistence
   getDownloadedFiles: () => 
     ipcRenderer.invoke('get-downloaded-files'),
-  addDownloadedFile: (filePath: string) => 
-    ipcRenderer.invoke('add-downloaded-file', filePath),
+  addDownloadedFile: (filePath: string, updateFreeSpace?: boolean) => 
+    ipcRenderer.invoke('add-downloaded-file', filePath, updateFreeSpace),
   cleanupDownloadedFiles: (directoryPath: string) =>
     ipcRenderer.invoke('cleanup-downloaded-files', directoryPath),
 

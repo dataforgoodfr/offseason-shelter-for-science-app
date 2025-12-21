@@ -1,8 +1,9 @@
 import { ipcMain } from 'electron'
-import { promises as fs } from 'fs'
+import * as fs from 'fs'
 import { join } from 'path'
 import { getDownloadPath } from '../../../../main/services/store.service'
 import { downloadDataset } from '../../../../main/services/download.service'
+import { createHash } from 'crypto'
 
 export function registerDownloadDataset() {
   ipcMain.handle('download-dataset', async (event, datasetId: string) => {
@@ -24,7 +25,7 @@ export function registerDownloadDataset() {
   })
 
   // Nouveaux handlers pour le streaming de fichiers torrents
-  const activeStreams = new Map<string, fs.FileHandle>()
+  const activeStreams = new Map<string, fs.promises.FileHandle>()
 
   ipcMain.handle('create-torrent-stream', async (event, fileName: string, customPath?: string) => {
     try {
@@ -39,7 +40,7 @@ export function registerDownloadDataset() {
       if (fs.existsSync(filePath)) {
         throw new Error(`Creating torrent stream ${fileName}: File already exists`);
       }
-      const fileHandle = await fs.open(filePath, 'w')
+      const fileHandle = await fs.promises.open(filePath, 'w')
       
       // Stocker le handle pour les écritures futures
       const streamId = `${fileName}-${Date.now()}`
@@ -88,18 +89,22 @@ export function registerDownloadDataset() {
   ipcMain.handle('get-file-for-torrent', async (event, filePath: string) => {
     try {
       // Vérifier que le fichier existe
-      await fs.access(filePath)
+      await fs.promises.access(filePath)
       
       // Lire le fichier
-      const fileData = await fs.readFile(filePath)
+      const fileData = await fs.promises.readFile(filePath)
       
       // Extraire le nom du fichier
       const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'unknown'
+
+      const stats = fs.statSync(filePath);
       
       return { 
         success: true, 
-        fileData: fileData.buffer, 
-        originalFileName: fileName 
+        fileData: fileData.buffer,
+        originalFileName: fileName,
+        mtime: stats.mtime.getTime(),
+        hash: createHash('sha256').update(fileData).digest('hex'), // File content hash
       }
     } catch (error: any) {
       console.error('Error reading file for torrent:', error)

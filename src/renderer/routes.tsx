@@ -4,12 +4,14 @@ import { Router } from 'lib/electron-router-dom'
 
 import { MainScreen } from './screens/poc'
 import { LoggerScreen } from './screens/logger'
+import { HiddenScreen } from './screens/hidden'
 
 export function AppRoutes() {
   return (
     <Router 
       main={<Route path="/" element={<MainScreen />} />}
       logger={<Route path="/" element={<LoggerScreen />} />}
+      hidden={<Route path="/" element={<HiddenScreen />} />}
     />
   )
 }

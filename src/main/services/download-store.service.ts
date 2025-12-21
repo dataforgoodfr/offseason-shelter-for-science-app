@@ -6,6 +6,27 @@ import { userConfig } from "lib/electron-app/utils/user-config";
 
 const store = new Store();
 
+// === INTERFACES ===
+interface DownloadedFile {
+  filePath: string;
+  downloadedAt: number;
+  modifiedAt: number;
+  size: number;
+  // seedingInfo: SeedingInfo | null;
+}
+
+interface DownloadedFilesStore {
+  [filePath: string]: DownloadedFile;
+}
+
+interface SeedingInfo {
+  magnetURI: string;
+  name: string;
+  torrentKey: string;
+  filepath: string;
+  lastSeeded: number;
+}
+
 class DownloadStoreService {
   private window: BrowserWindow | null = null;
 
@@ -27,7 +48,8 @@ class DownloadStoreService {
 
   // === DOWNLOADED FILES ===
   getDownloadedFiles(): DownloadedFilesStore {
-    return store.get("downloadedFiles", {}) as DownloadedFilesStore;
+    const result = store.get("downloadedFiles", {}) as DownloadedFilesStore;
+    return result;
   }
 
   private computeTotalDownloadedFileSize(downloadedFiles: DownloadedFilesStore): number {
@@ -81,7 +103,7 @@ class DownloadStoreService {
   }
   
   // Add a downloaded file path in DB
-  addDownloadedFile(filePath: string): void {
+  addDownloadedFile(filePath: string, updateFreeSpace: boolean = true): void {
     const downloadedFiles = this.getDownloadedFiles();
     
     downloadedFiles[filePath] = {
@@ -89,17 +111,24 @@ class DownloadStoreService {
       downloadedAt: Date.now(),
       modifiedAt: fs.statSync(filePath).mtime.getTime(),
       size: fs.statSync(filePath).size,
+      // seedingInfo: null,
     };
 
     store.set("downloadedFiles", downloadedFiles);
 
     console.log(`Added downloaded file to DB: ${filePath}`);
 
+    if (updateFreeSpace === true) {
+      this.updateRemainingFreeSpace();
+    }
+  }
+
+  private updateRemainingFreeSpace() {
     // Retrieve storage allocation from config
     const storageAllocation = userConfig.getStorageAllocation();
 
     // Check if the total size of the downloaded files is greater than the storage allocation
-    const freeSpace = storageAllocation - this.computeTotalDownloadedFileSize(downloadedFiles);
+    const freeSpace = storageAllocation - this.computeTotalDownloadedFileSize(this.getDownloadedFiles());
 
     if (freeSpace <= 0) {
       this.setRemainingFreeSpace(0);
@@ -110,7 +139,7 @@ class DownloadStoreService {
       }
     } else {
       this.setRemainingFreeSpace(freeSpace);
-    }    
+    }
   }
   
   // Delete all downloaded files in a directory
@@ -176,18 +205,32 @@ class DownloadStoreService {
     
     return { deletedFiles, errors };
   }
+
+  async clear() {
+    store.set("downloadedFiles", {});
+  }
 }
 
-// === INTERFACES ===
-interface DownloadedFile {
-  filePath: string;
-  downloadedAt: number;
-  modifiedAt: number;
-  size: number;
+/** SEEDING */
+
+export function saveSeedingInfo(filePath: string, info: SeedingInfo) {
+  const seedingData = getSeedingData();
+  seedingData[filePath] = info;
+  store.set("seedingData", seedingData);
 }
 
-interface DownloadedFilesStore {
-  [filePath: string]: DownloadedFile;
+export function getSeedingData(): Record<string, SeedingInfo> {
+  return store.get("seedingData", {}) as Record<string, SeedingInfo>;
+}
+
+export function clearSeedingData() {
+  store.set("seedingData", {});
+}
+
+export function removeSeedingInfo(filePath: string) {
+  const seedingData = getSeedingData();
+  delete seedingData[filePath];
+  store.set("seedingData", seedingData);
 }
 
 // === SINGLETON INSTANCE ===

@@ -6,7 +6,7 @@ import {
   CheckIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
-import webTorrentService from 'renderer/services/webtorrent.service'
+import { getWebTorrentService } from 'renderer/services/webtorrent.service'
 
 interface DownloadState {
   isDownloading: boolean
@@ -70,6 +70,8 @@ export const DatasetDownloader: React.FC<{ datasetName: string }> = ({
     })
 
     try {
+      const webTorrentService = getWebTorrentService();
+
       // Phase 0: Nettoyer l'ancienne entrée de seeding et supprimer le torrent existant
       const downloadPath = await window.App.getDownloadPath()
       if (downloadPath) {
@@ -86,6 +88,7 @@ export const DatasetDownloader: React.FC<{ datasetName: string }> = ({
               '🛑 Arrêt du seeding existant pour:',
               existingSeedingInfo.name
             )
+
             // Arrêter le seeding existant
             await webTorrentService.stopSeeding(existingSeedingInfo.torrentKey)
             // Supprimer complètement le torrent du client WebTorrent
@@ -212,11 +215,10 @@ export const DatasetDownloader: React.FC<{ datasetName: string }> = ({
       <button
         onClick={handleDownload}
         disabled={downloadState.isDownloading}
-        className={`w-full text-sm font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 ${
-          downloadState.isDownloading
-            ? 'bg-white/10 text-white/60 cursor-not-allowed'
-            : 'bg-white/20 hover:bg-white/30 text-white'
-        }`}
+        className={`w-full text-sm font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 ${downloadState.isDownloading
+          ? 'bg-white/10 text-white/60 cursor-not-allowed'
+          : 'bg-white/20 hover:bg-white/30 text-white'
+          }`}
       >
         <ArrowDownIcon className="w-4 h-4" />
         <span>

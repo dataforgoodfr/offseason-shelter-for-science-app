@@ -1,4 +1,5 @@
 import { BrowserWindow, ipcMain } from 'electron'
+import { appendFile as fsAppendFile } from 'fs'
 import { LogSource, LOG_SOURCE_MAIN, LOG_SOURCE_RENDERER } from 'lib/electron-app/types/logger'
 
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug'
@@ -19,12 +20,18 @@ class LoggerService {
   private loggerWindow: BrowserWindow | null = null
   private maxLogs = 1000
 
+  private outputPath: string | null = null
+
   constructor() {
     this.setupIPC()
   }
 
   setLoggerWindow(window: BrowserWindow) {
     this.loggerWindow = window
+  }
+
+  setOutputFile(filePath: string) {
+    this.outputPath = filePath;
   }
 
   private setupIPC() {
@@ -68,6 +75,16 @@ class LoggerService {
     // Send to the logger window if available
     if (this.loggerWindow) {
       this.sendToLoggerWindow(log)
+    }
+
+    // Optionally, write to output file
+    if (this.outputPath) {
+      const message = `[${log.timestamp.toISOString()}] [${log.level.toUpperCase()}] [${log.source}] ${log.message}`;
+      fsAppendFile(this.outputPath, message + '\n', err => {
+        if (err) {
+          console.error('Failed to write log to file:', err)
+        }
+      })
     }
   }
 

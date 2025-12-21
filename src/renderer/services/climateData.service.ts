@@ -1,5 +1,5 @@
 import { DispatchRequestPayload, DispatchResponse, DownloadProgressCallback, StatusUpdatePayload } from 'renderer/lib/types'
-import webTorrentService from './webtorrent.service'
+import { getWebTorrentService } from './webtorrent.service'
 import { logger } from 'renderer/lib/logger'
 import { truncateMagnetLink } from 'renderer/lib/torrent'
 import { Asset } from 'shared/api'
@@ -81,6 +81,8 @@ class ClimateDataService {
 
       // Création du magnet link
       try {
+        const webTorrentService = getWebTorrentService();
+
         const seedingResult = await webTorrentService.saveFileForSeeding(
           downloadResult.filePath,
           undefined, // as of 2025-11-07 asset.name is unreliable
@@ -205,6 +207,8 @@ class ClimateDataService {
             }
           }
         }
+
+        const webTorrentService = getWebTorrentService();
 
         await webTorrentService.startTorrenting(torrentKey, asset.url, callbacks)
 

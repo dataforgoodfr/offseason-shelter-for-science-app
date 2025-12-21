@@ -4,8 +4,9 @@ import * as path from "path";
 import {
   getSeedingData,
   saveSeedingInfo,
+  clearSeedingData,
   removeSeedingInfo,
-} from "main/services/store.service";
+} from "main/services/download-store.service";
 
 export function registerSeedingManagement() {
   // Sauvegarder les infos de seeding
@@ -33,6 +34,10 @@ export function registerSeedingManagement() {
     }
   });
 
+  ipcMain.handle("seeding:clear", async () => {
+    clearSeedingData();
+  });
+
   // Supprimer les infos de seeding
   ipcMain.handle("remove-seeding-info", async (_event, filePath: string) => {
     try {
@@ -53,7 +58,7 @@ export function registerSeedingManagement() {
       }
 
       const files: string[] = [];
-      const items = fs.readdirSync(directoryPath);
+      const items = fs.readdirSync(directoryPath, {recursive: false});
 
       for (const item of items) {
         const fullPath = path.join(directoryPath, item);

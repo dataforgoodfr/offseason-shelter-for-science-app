@@ -13,8 +13,8 @@ export function registerDownloadStore() {
         return downloadStoreService.getDownloadedFiles();
     });
     
-    ipcMain.handle("add-downloaded-file", (event, filePath: string) => {
-        downloadStoreService.addDownloadedFile(filePath);
+    ipcMain.handle("add-downloaded-file", (event, filePath: string, updateFreeSpace: boolean) => {
+        downloadStoreService.addDownloadedFile(filePath, updateFreeSpace);
     });
     
     ipcMain.handle("cleanup-downloaded-files", (event, directoryPath: string) => {

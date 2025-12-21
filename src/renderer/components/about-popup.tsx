@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 interface AboutPopupProps {
     onStopHosting: () => void;
     onContactUs: () => void;
