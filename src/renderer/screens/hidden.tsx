@@ -25,7 +25,7 @@ export function HiddenScreen() {
           window.App.scanDirectoryForSeeding(path).then((result) => {
             if (result.success) {
               const promisePool = new PromisePool(
-                10,
+                5,
                 () => {
                   logger.info(`Seeding from scanning ${path} done`);
                   window.App.checkRemainingFreeSpace();

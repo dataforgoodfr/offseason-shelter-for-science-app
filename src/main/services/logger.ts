@@ -18,7 +18,7 @@ const ACCEPTED_LOG_LEVELS: LogLevel[] = process.env.NODE_ENV === 'development' ?
 class LoggerService {
   private logs: LogEntry[] = []
   private loggerWindow: BrowserWindow | null = null
-  private maxLogs = 1000
+  private maxLogs = 500
 
   private outputPath: string | null = null
 

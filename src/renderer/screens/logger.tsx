@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { MagnifyingGlassIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { LOG_SOURCE_MAIN, LOG_SOURCE_RENDERER, LOG_SOURCE_SYSTEM, LogSource } from "lib/electron-app/types/logger";
 
-const MAX_LOGS = 1000;
+const MAX_LOGS = 500;
 
 // Types
 interface LogEntry {
@@ -98,9 +98,9 @@ export function LoggerScreen() {
 
   return (
     <div className="flex w-full h-screen p-4 flex-col items-start gap-0 box-border rounded-xl border border-white bg-gradient-to-t from-transparent via-transparent to-black/30 backdrop-blur-[17px] overflow-hidden"
-        style={{ 
-          background: 'linear-gradient(0deg, rgba(0, 0, 0, 0.00) 50%, rgba(0, 0, 0, 0.30) 100%), rgba(69, 126, 101, 0.75)'
-        }}
+      style={{
+        background: 'linear-gradient(0deg, rgba(0, 0, 0, 0.00) 50%, rgba(0, 0, 0, 0.30) 100%), rgba(69, 126, 101, 0.75)'
+      }}
     >
       {/* Header */}
       <div className="flex justify-end items-center self-stretch mb-4">
@@ -203,9 +203,9 @@ export function LoggerScreen() {
                 <div className="text-white">{log.message}</div>
                 {log.data && (
                   <div className="mt-2 p-2 rounded text-xs text-white/80"
-                       style={{
-                         background: "rgba(0, 0, 0, 0.2)"
-                       }}>
+                    style={{
+                      background: "rgba(0, 0, 0, 0.2)"
+                    }}>
                     <pre>{JSON.stringify(log.data, null, 2)}</pre>
                   </div>
                 )}
@@ -218,9 +218,9 @@ export function LoggerScreen() {
 
       {/* Footer */}
       <div className="w-full h-[32px] flex items-center gap-2 pt-2 opacity-80 justify-center"
-            style={{ transform: "rotate(0deg)" }}>
+        style={{ transform: "rotate(0deg)" }}>
         <span className="text-[9px] text-white font-normal uppercase tracking-[0.1em] leading-[100%] text-center align-middle"
-              style={{ fontFamily: "Akzidenz-Grotesk Pro" }}>
+          style={{ fontFamily: "Akzidenz-Grotesk Pro" }}>
           {filteredLogs.length} log(s) displayed on {logs.length} total
         </span>
       </div>

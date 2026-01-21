@@ -76,6 +76,10 @@ const API = {
   cleanupDownloadedFiles: (directoryPath: string) =>
     ipcRenderer.invoke('cleanup-downloaded-files', directoryPath),
 
+  // Download store
+  clearDownloadStore: () => 
+    ipcRenderer.invoke('download-store:clear'),
+
   // Dummy downloader
   downloadFile: (url: string, downloadPath: string, filename?: string, defaultFileNamePrefix?: string) =>
     ipcRenderer.invoke('download-file', url, downloadPath, filename, defaultFileNamePrefix),
@@ -142,6 +146,10 @@ const API = {
   expandMainWindowHeight: (expansionLevel: number) => ipcRenderer.invoke('window:expand-height', expansionLevel),
   setWindowHeight: (height: number) => ipcRenderer.invoke('window:set-height', height),
   
+  // Inter-window communication
+  sendMessageToWindow: (windowId: string, message: any) =>
+    ipcRenderer.invoke('window:send', windowId, message),
+
   // Window control methods
   minimize: () => ipcRenderer.invoke('window:minimize'),
   close: () => ipcRenderer.invoke('window:close'),

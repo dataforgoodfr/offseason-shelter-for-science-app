@@ -103,7 +103,7 @@ export class WebTorrentService {
 
     this.client = new WebTorrent({
       peerId,
-      maxConns: 25,
+      maxConns: 200,
       dht: true,
       tracker: true,
       webSeeds: true,
@@ -122,7 +122,7 @@ export class WebTorrentService {
     }, 1000);
   }
 
-  // === GESTION DES CALLBACKS DE PROGRÈS GLOBAUX ===
+    // === GESTION DES CALLBACKS DE PROGRÈS GLOBAUX ===
   public subscribeToProgress(callback: (progress: TorrentProgress) => void): void {
     this.progressCallbacks.add(callback);
   }
@@ -131,37 +131,37 @@ export class WebTorrentService {
     this.progressCallbacks.delete(callback);
   }
 
-public async startTorrenting(
-  torrentKey: string,
-  torrentID: string,
-  callbacks: TorrentCallbacks,
-): Promise<void> {
-  console.log('Starting torrent:', torrentKey, torrentID);
+  public async startTorrenting(
+    torrentKey: string,
+    torrentID: string,
+    callbacks: TorrentCallbacks,
+  ): Promise<void> {
+    console.log('Starting torrent:', torrentKey, torrentID);
 
-  try {
-    logger.info("Downloading torrent", truncateMagnetLink(torrentID));
-    const torrent = this.client.add(
-      torrentID,
-    );
-    (torrent as any).key = torrentKey;
+    try {
+      logger.info("Downloading torrent", truncateMagnetLink(torrentID));
+      const torrent = this.client.add(
+        torrentID,
+      );
+      (torrent as any).key = torrentKey;
 
-    this.setupTorrentEvents(torrent, callbacks);
+      this.setupTorrentEvents(torrent, callbacks);
 
-  } catch (error) {
-    logger.error('Erreur lors du démarrage du torrent:', error);
-    callbacks.onError?.({
-      torrentKey,
-      error: error instanceof Error ? error.message : 'Erreur inconnue'
-    });
+    } catch (error) {
+      logger.error('Erreur lors du démarrage du torrent:', error);
+      callbacks.onError?.({
+        torrentKey,
+        error: error instanceof Error ? error.message : 'Erreur inconnue'
+      });
+    }
   }
-}
+
   public stopTorrenting(infoHash: string): void {
     console.log('Stopping torrent:', infoHash);
     const torrent = this.client.get(infoHash);
     if (torrent) torrent.destroy();
   }
 
-  // Nouvelle méthode pour supprimer un torrent par son nom
   public removeTorrentByName(torrentName: string): void {
     console.log('Removing torrent by name:', torrentName);
     const torrent = this.client.torrents.find((t: any) => t.name === torrentName);
@@ -173,7 +173,6 @@ public async startTorrenting(
     }
   }
 
-  // === CRÉATION ET SEEDING DE TORRENTS ===
   public async createMagnetLinkFromFileAndSeed(
     filePath: string, 
     fileName?: string, 
@@ -191,11 +190,10 @@ public async startTorrenting(
 
           const { fileData, originalFileName, mtime, hash } = fileResult;
 
-          // CRÉER UN NOM UNIQUE
           const baseFileName = fileName || originalFileName;
 
           // broija 2025-12-11 : unicity enforced with content hash and mtime
-          const uniqueTorrentName = `${baseFileName}_${hash}_${mtime}`;
+          const uniqueTorrentName = `${hash}_${mtime}_${baseFileName}`;
           const file = new File([fileData], uniqueTorrentName);
           
           const options = {
@@ -204,7 +202,7 @@ public async startTorrenting(
             createdBy: 'Shelter For Science App', // @todo : add app version at build time ?
             private: false,
             announceList: [
-              ['wss://tracker.btorrent.xyz'], // Down as of 2025/09/18
+              ['wss://tracker.btorrent.xyz'],
               ['wss://tracker.openwebtorrent.com'],
             ],
           };
@@ -566,7 +564,7 @@ public async startTorrenting(
         logger.debug(`Reprise du seeding pour ${filePaths.length} fichiers...`);
 
         const promisePool = new PromisePool(
-          10,
+          5,
           () => logger.debug('Reprise du seeding terminée')
         );
         promisePool.setLogger(logger.debug)
@@ -581,7 +579,7 @@ public async startTorrenting(
       } catch (error) {
         console.error('❌ Erreur lors de la reprise du seeding:', error);
       }
-    }, 2000); // Délai de 2 secondes après l'initialisation
+    }, 3000); // Increased delay to 3 seconds to ensure client readiness
   }
 
   // Reprendre le seeding pour un fichier spécifique

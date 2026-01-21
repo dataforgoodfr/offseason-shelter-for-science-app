@@ -4,6 +4,7 @@ import { makeAppWithSingleInstanceLock } from "lib/electron-app/factories/app/in
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { MainWindow } from "./windows/main";
 import { LoggerWindow } from "./windows/logger";
+import { DebugWindow } from "./windows/debug";
 import { HiddenWindow } from "./windows/hidden";
 
 import { registerFolderPicker } from "lib/electron-app/factories/ipcs/register-folter-picker";
@@ -21,6 +22,8 @@ import { registerWindowEvents } from "lib/electron-app/factories/ipcs/register-w
 import { getDownloadPath } from "./services/store.service";
 
 import path from "path";
+import { ENVIRONMENT } from "shared/constants";
+import { registerWindowCommunication } from "lib/electron-app/factories/ipcs/register-window-communication";
 
 makeAppWithSingleInstanceLock(async () => {
   await app.whenReady();
@@ -41,6 +44,16 @@ makeAppWithSingleInstanceLock(async () => {
   const mainWindow = await makeAppSetup(MainWindow);
   const loggerWindow = await LoggerWindow();
   const hiddenWindow = await HiddenWindow();
+
+  registerWindowCommunication(new Map([
+    ['main', mainWindow],
+    ['logger', loggerWindow],
+    ['hidden', hiddenWindow],
+  ]));
+
+  if (ENVIRONMENT.IS_DEV) {
+    const debugWindow = await DebugWindow();
+  }
   
   // Configure the logging service with the window
   loggerService.setLoggerWindow(loggerWindow);
